@@ -1,17 +1,16 @@
 use std::sync::Mutex;
 use mpd::Client;
 use mpc_display_rs::music::DataCache;
-// use std::net::TcpStream;
 
 fn main() {
-    let mut conn = Client::connect("127.0.0.1:6600").unwrap();
+    let conn = Client::connect("127.0.0.1:6600").expect("should get client");
+
+    let x = DataCache::default();
+    println!("DEFAULT:\n{x}");
 
     let data = DataCache::new(
-        conn.status().unwrap(),
-        conn.currentsong().unwrap().unwrap(),
-        Mutex::new(conn),
+        &Mutex::new(conn)
         );
 
-    println!("---\n{}\n---", data);
-    println!("---\n{:?}\n---", data);
+    println!("---\n{data:?}\n---\n{data}\n---");
 }
