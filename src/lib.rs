@@ -2,14 +2,17 @@ pub mod music {
     use std::borrow::Cow::Borrowed;
     use std::fmt;
     use std::sync::Mutex;
+    // use std::thread::sleep;
     use std::time::Duration;
     use mpd::{
         Client,
+        Idle,
         Query,
         search::Window,
         Song,
         song::QueuePlace,
         State,
+        Subsystem,
         Term,
     };
 
@@ -19,6 +22,7 @@ pub mod music {
         // the exception to this is queue_total, which theoretically would be 0
         // when there is no value, but i've chosen to force it into an Option
         // anyway, for consistency and because it makes things cooler later.
+        client: Mutex<Client>,
         artist: Option<String>,
         title: Option<String>,
         album: Option<String>,
@@ -34,16 +38,51 @@ pub mod music {
     }
 
     impl DataCache {
-        pub fn new(client: &Mutex<Client>) -> Self {
+        pub fn new(client: Mutex<Client>) -> Self {
             let mut data_cache = Self::default();
-            data_cache.update_status(client);
-            data_cache.update_song(client);
+            data_cache.client = client;
+            data_cache.update_status();
+            data_cache.update_song();
             data_cache
         }
 
-        fn update_status(&mut self, client: &Mutex<Client>) {
+        pub fn idle(&mut self) {
+            // use client to idle. no early drop
+            let mut conn = self.client.lock()
+                .expect("should have client");
+            // sleep(Duration::from_secs(1));
+            let subsystems = conn.wait(&[
+                Subsystem::Player, Subsystem::Mixer,
+                Subsystem::Options, Subsystem::Playlist,
+            ]).unwrap();
+            drop(conn);
+            println!("subsystems: {subsystems:?}");
+            for i in subsystems {
+                // if i == 'player':
+                //  status, song = True, True
+                // elif i == 'mixer' or i == 'options':
+                //  status = True
+                // elif i == 'playlist':
+                //  plist = True
+                match i {
+                    Subsystem::Player => {
+                        self.update_status();
+                        self.update_song();
+                    }
+                    Subsystem::Mixer | Subsystem::Options => {
+                        self.update_status();
+                    }
+                    Subsystem::Playlist => {
+                        todo!();
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        fn update_status(&mut self) {
             // use client to get some data
-            let mut conn = client.lock()
+            let mut conn = self.client.lock()
                 .expect("should have client");
             let status = conn.status()
                 .unwrap_or_default();
@@ -64,9 +103,9 @@ pub mod music {
                 status.single, status.consume];
         }
 
-        fn update_song(&mut self, client: &Mutex<Client>) {
+        fn update_song(&mut self) {
             // use client to get some data
-            let mut conn = client.lock()
+            let mut conn = self.client.lock()
                 .expect("should have client");
             let song = conn.currentsong()
                 .unwrap_or_default().unwrap_or_default();
@@ -81,7 +120,7 @@ pub mod music {
             }
 
             // try to get album progress
-            let album_progress = Self::get_album_nums(client, album, song.clone());
+            let album_progress = Self::get_album_nums(&self.client, album, song.clone());
             let (album_track, album_total) = match album_progress {
                 Some(s) => (Some(s.0), Some(s.1)),
                 None => (None, None),
@@ -152,15 +191,6 @@ pub mod music {
             let volume = self.volume;
 
             // apply coloring!!!
-            //
-            // ESC = '\x1b'
-            // COLOR = '%s[%%sm' % ESC
-            // METADATA_SEP = ' & '
-            // PLAYLIST_SEP = ' * '
-
-            // color variables!
-            // const ESC: &str = "\x1b";
-            // const COLOR: &str = "{ESC}[{}m";
             // TODO: can a macro be useful here?
             let col_artist = "\x1b[1;36m";  // bold cyan
             let col_title  = "\x1b[1;34m";  // bold blue
@@ -173,8 +203,8 @@ pub mod music {
 
             let col_state = match self.state {
                 State::Play => col_play,
-                State::Pause => col_pause,
-                State::Stop => col_pause,
+                State::Pause | State::Stop =>
+                    col_pause,
             };
 
             // final format text
@@ -184,6 +214,7 @@ pub mod music {
             // format!("{artist} * {title}\n(#{album_track}/{album_total}) {album}\n{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%\n{ersc_str}, {volume}%")
         }
 
+        //TODO: optimize this by caching the result on a per-album basis
         fn get_album_nums(client: &Mutex<Client>, album: Option<&String>, song: Song) -> Option<(u32, u32)> {
             // build query
             let mut query = Query::new();
@@ -230,6 +261,7 @@ pub mod music {
             for (i, v) in base.iter().enumerate() {
                 ersc.push(
                     // this unwrap_or is... middling at best, i think
+                    // TODO: move this unwrap into display?
                     if *ersc_opts.get(i).unwrap_or(&false) {
                         v.to_ascii_uppercase()
                     } else {
