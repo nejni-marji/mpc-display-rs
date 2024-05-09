@@ -1,14 +1,13 @@
-use std::sync::Mutex;
 use mpd::Client;
-use mpc_display_rs::music::DataCache;
+use mpc_display_rs::music::Player;
 
 fn main() {
     let conn = Client::connect("127.0.0.1:6600").expect("should get client");
-    let mut data = DataCache::new(Mutex::new(conn));
+    let mut player = Player::new(conn);
 
     println!("[startup]");
     loop {
-        println!("{data}");
-        data.idle();
+        println!("{}", player.data);
+        player.data.idle();
     }
 }

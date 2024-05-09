@@ -17,6 +17,12 @@ pub mod music {
     };
 
     #[derive(Debug,Default)]
+    pub struct Player {
+        pub data: DataCache,
+        quit: bool,
+    }
+
+    #[derive(Debug,Default)]
     pub struct DataCache {
         // everything that can potentially be missing is an Option type.
         // the exception to this is queue_total, which theoretically would be 0
@@ -37,10 +43,21 @@ pub mod music {
         ersc_opts: Vec<bool>,
     }
 
+    impl Player {
+        pub fn new(client: Client) -> Self {
+            Self {
+                data: DataCache::new(Mutex::new(client)),
+                quit: false,
+            }
+        }
+    }
+
     impl DataCache {
         pub fn new(client: Mutex<Client>) -> Self {
-            let mut data_cache = Self::default();
-            data_cache.client = client;
+            let mut data_cache = Self {
+                client,
+                ..Default::default()
+            };
             data_cache.update_status();
             data_cache.update_song();
             data_cache
@@ -135,7 +152,67 @@ pub mod music {
             self.album_total = album_total;
         }
 
-        fn display_todo(&self) -> String {
+        //TODO: optimize this by caching the result on a per-album basis
+        fn get_album_nums(client: &Mutex<Client>, album: Option<&String>, song: Song) -> Option<(u32, u32)> {
+            // build query
+            let mut query = Query::new();
+            query.and(Term::Tag(Borrowed("Album")), album?);
+            let window = Window::from((0,u32::from(u16::MAX))); //TODO: make const?
+            // lock client and search
+            let mut conn = client.lock()
+                .expect("should have client");
+            let search = conn.search(&query, window);
+            drop(conn);
+            // parse search
+            match search {
+                Err(_) => { None },
+                Ok(search) => {
+                    let mut track = None;
+                    for (k, v) in song.tags {
+                        if k == "Track" {
+                            track = Some(v);
+                        }
+                    }
+                    // return numeric value
+                    match track?.parse() {
+                        Err(_) => { None },
+                        Ok(track) =>
+                        {
+                            Some((track, u32::try_from(search.len()).expect("should be able to cast search")))
+                        }
+                    }
+                }
+            }
+        }
+
+        fn pretty_time(dur: Option<Duration>) -> Option<String> {
+            let n = dur?.as_secs();
+            let (min, sec) = (n / 60, n % 60);
+            Some(format!("{min}:{sec:0>2}"))
+        }
+
+        fn get_ersc(&self) -> String {
+            let mut ersc = String::new();
+            let base = ['e', 'r', 's', 'c'];
+            let ersc_opts = self.ersc_opts
+                .clone();
+            for (i, v) in base.iter().enumerate() {
+                ersc.push(
+                    // this unwrap_or is... middling at best, i think
+                    // TODO: move this unwrap into display?
+                    if *ersc_opts.get(i).unwrap_or(&false) {
+                        v.to_ascii_uppercase()
+                    } else {
+                        *v
+                    }
+                );
+            }
+            ersc
+        }
+    }
+
+    impl fmt::Display for DataCache {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             // artist, title, albtrack, albtot, alb, state, qtrack, qtot,
             // elapsed_pretty, duration_pretty, percent, ersc_str, volume
 
@@ -208,74 +285,9 @@ pub mod music {
             };
 
             // final format text
-            format!("{col_artist}{artist}{col_end} * {col_title}{title}{col_end}\n({col_track}#{album_track}/{album_total}{col_end}) {col_album}{album}{col_end}\n{col_state}{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%{col_end}\n{col_state}{ersc_str}, {volume}%{col_end}")
-
-            // // final format text
-            // format!("{artist} * {title}\n(#{album_track}/{album_total}) {album}\n{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%\n{ersc_str}, {volume}%")
-        }
-
-        //TODO: optimize this by caching the result on a per-album basis
-        fn get_album_nums(client: &Mutex<Client>, album: Option<&String>, song: Song) -> Option<(u32, u32)> {
-            // build query
-            let mut query = Query::new();
-            query.and(Term::Tag(Borrowed("Album")), album?);
-            let window = Window::from((0,u32::from(u16::MAX))); //TODO: make const?
-            // lock client and search
-            let mut conn = client.lock()
-                .expect("should have client");
-            let search = conn.search(&query, window);
-            drop(conn);
-            // parse search
-            match search {
-                Err(_) => { None },
-                Ok(search) => {
-                    let mut track = None;
-                    for (k, v) in song.tags {
-                        if k == "Track" {
-                            track = Some(v);
-                        }
-                    }
-                    // return numeric value
-                    match track?.parse() {
-                        Err(_) => { None },
-                        Ok(track) =>
-                        {
-                            Some((track, u32::try_from(search.len()).expect("should be able to cast search")))
-                        }
-                    }
-                }
-            }
-        }
-
-        fn pretty_time(dur: Option<Duration>) -> Option<String> {
-            let n = dur?.as_secs();
-            let (min, sec) = (n / 60, n % 60);
-            Some(format!("{min}:{sec:0>2}"))
-        }
-
-        fn get_ersc(&self) -> String {
-            let mut ersc = String::new();
-            let base = ['e', 'r', 's', 'c'];
-            let ersc_opts = self.ersc_opts
-                .clone();
-            for (i, v) in base.iter().enumerate() {
-                ersc.push(
-                    // this unwrap_or is... middling at best, i think
-                    // TODO: move this unwrap into display?
-                    if *ersc_opts.get(i).unwrap_or(&false) {
-                        v.to_ascii_uppercase()
-                    } else {
-                        *v
-                    }
-                );
-            }
-            ersc
-        }
-    }
-
-    impl fmt::Display for DataCache {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            write!(f, "{}", self.display_todo())
+            write!(f,
+                "{col_artist}{artist}{col_end} * {col_title}{title}{col_end}\n({col_track}#{album_track}/{album_total}{col_end}) {col_album}{album}{col_end}\n{col_state}{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%{col_end}\n{col_state}{ersc_str}, {volume}%{col_end}"
+                )
         }
     }
 }
