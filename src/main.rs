@@ -6,8 +6,15 @@ fn main() {
     let mut player = Player::new(conn);
 
     println!("[startup]");
-    loop {
-        println!("{}", player.data);
-        player.data.idle();
-    }
+    player.init();
+    println!("{}", player.data.lock().unwrap());
+    player.display();
+
+
+    // player.init();
+    // player.display_loop();
+    // loop {
+    //     println!("{}", player.data);
+    //     player.data.idle();
+    // }
 }

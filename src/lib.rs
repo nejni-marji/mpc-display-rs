@@ -1,9 +1,17 @@
 pub mod music {
     use std::borrow::Cow::Borrowed;
     use std::fmt;
-    use std::sync::Mutex;
-    // use std::thread::sleep;
+    use std::sync::{
+        // Arc,
+        Mutex,
+    };
+    #[allow(unused_imports)]
+    use std::thread::{
+        sleep,
+        spawn,
+    };
     use std::time::Duration;
+    #[allow(unused_imports)]
     use mpd::{
         Client,
         Idle,
@@ -18,17 +26,20 @@ pub mod music {
 
     #[derive(Debug,Default)]
     pub struct Player {
-        pub data: DataCache,
+        //TODO: does this need to be a mutex?
+        client: Mutex<Client>,
+        pub data: Mutex<DataCache>,
+        #[allow(dead_code)]
         quit: bool,
     }
 
-    #[derive(Debug,Default)]
+    #[derive(Debug,Default,Clone)]
     pub struct DataCache {
         // everything that can potentially be missing is an Option type.
         // the exception to this is queue_total, which theoretically would be 0
         // when there is no value, but i've chosen to force it into an Option
         // anyway, for consistency and because it makes things cooler later.
-        client: Mutex<Client>,
+        song: Song,
         artist: Option<String>,
         title: Option<String>,
         album: Option<String>,
@@ -44,26 +55,38 @@ pub mod music {
     }
 
     impl Player {
+        //TODO: how to document things?
+        /// Player() does not self-initialize, see self.init().
         pub fn new(client: Client) -> Self {
             Self {
-                data: DataCache::new(Mutex::new(client)),
+                client: Mutex::new(client),
+                data: Mutex::new(DataCache::new()),
                 quit: false,
             }
         }
-    }
 
-    impl DataCache {
-        pub fn new(client: Mutex<Client>) -> Self {
-            let mut data_cache = Self {
-                client,
-                ..Default::default()
-            };
-            data_cache.update_status();
-            data_cache.update_song();
-            data_cache
+        pub fn init(&mut self) {
+            // TODO: have to handle this
+            let mut data = self.data.lock().expect("should be able to lock data");
+            data.update_status(&self.client);
+            data.update_song(&self.client);
         }
 
-        pub fn idle(&mut self) {
+        pub fn display(&mut self) {
+            // TODO: create some sort of messaging system between this and the
+            // display thread
+            loop {
+                self.idle();
+                // TODO: send kill signal to thread
+                let data = self.data.lock().unwrap();
+                println!("{data}");
+                if data.state == State::Play {
+                    // TODO: spawn thread
+                }
+            }
+        }
+
+        fn idle(&mut self) {
             // use client to idle. no early drop
             let mut conn = self.client.lock()
                 .expect("should have client");
@@ -75,19 +98,14 @@ pub mod music {
             drop(conn);
             println!("subsystems: {subsystems:?}");
             for i in subsystems {
-                // if i == 'player':
-                //  status, song = True, True
-                // elif i == 'mixer' or i == 'options':
-                //  status = True
-                // elif i == 'playlist':
-                //  plist = True
+                let mut data = self.data.lock().unwrap();
                 match i {
                     Subsystem::Player => {
-                        self.update_status();
-                        self.update_song();
+                        data.update_status(&self.client);
+                        data.update_song(&self.client);
                     }
                     Subsystem::Mixer | Subsystem::Options => {
-                        self.update_status();
+                        data.update_status(&self.client);
                     }
                     Subsystem::Playlist => {
                         todo!();
@@ -97,9 +115,49 @@ pub mod music {
             }
         }
 
-        fn update_status(&mut self) {
+        /*
+        pub fn display_loop(data: Arc<Mutex<DataCache>>) {
+            const DELAY: u64 = 2;
+            let mut data = data.lock().unwrap();
+            println!("display_loop: {data:?}");
+            // while !self.quit {
+            loop {
+                if data.state == State::Play {
+                    println!("display_loop: PLAYING");
+                    //TODO: this can be an id value, no clone required
+                    let song_a = data.song.clone();
+                    sleep(Duration::from_secs(DELAY));
+                    let song_b = data.song.clone();
+                    if song_a == song_b && data.state == State::Play {
+                        data.increment_time(DELAY);
+                    }
+                    // if !self.quit {
+                    if true {
+                        println!("{}", data);
+                    }
+                } else {
+                    data.increment_time(DELAY);
+                    //TODO: what is this branch for?
+                    // i guess it's for quitting?
+                }
+            }
+        }
+        pub fn idle_loop(data: Arc<Mutex<DataCache>>) {
+            let data = data.lock().unwrap();
+            println!("idle_loop: {data:?}");
+        }
+        */
+    }
+
+    impl DataCache {
+        pub fn new() -> Self {
+            //TODO: can this be a trait or something?
+            Self::default()
+        }
+
+        fn update_status(&mut self, client: &Mutex<Client>) {
             // use client to get some data
-            let mut conn = self.client.lock()
+            let mut conn = client.lock()
                 .expect("should have client");
             let status = conn.status()
                 .unwrap_or_default();
@@ -120,13 +178,16 @@ pub mod music {
                 status.single, status.consume];
         }
 
-        fn update_song(&mut self) {
+        fn update_song(&mut self, client: &Mutex<Client>) {
             // use client to get some data
-            let mut conn = self.client.lock()
+            let mut conn = client.lock()
                 .expect("should have client");
             let song = conn.currentsong()
                 .unwrap_or_default().unwrap_or_default();
             drop(conn);
+
+            // update song
+            self.song = song.clone();
 
             // try to get album
             let mut album = None;
@@ -137,7 +198,7 @@ pub mod music {
             }
 
             // try to get album progress
-            let album_progress = Self::get_album_nums(&self.client, album, song.clone());
+            let album_progress = Self::get_album_nums(client, album, song.clone());
             let (album_track, album_total) = match album_progress {
                 Some(s) => (Some(s.0), Some(s.1)),
                 None => (None, None),
@@ -150,6 +211,13 @@ pub mod music {
             self.album = album.cloned();
             self.album_track = album_track;
             self.album_total = album_total;
+        }
+
+        pub fn increment_time(&mut self, n: u64) {
+            self.time_curr = match self.time_curr {
+                Some(t) => Some(t + Duration::from_secs(n)),
+                None => None
+            }
         }
 
         //TODO: optimize this by caching the result on a per-album basis
@@ -167,6 +235,7 @@ pub mod music {
             match search {
                 Err(_) => { None },
                 Ok(search) => {
+                    // eprintln!("{search:?}");
                     let mut track = None;
                     for (k, v) in song.tags {
                         if k == "Track" {
@@ -226,6 +295,7 @@ pub mod music {
             let title = self.title
                 .clone().unwrap_or(UNKNOWN.to_string());
 
+            // eprintln!("self.album_track: {:?}", self.album_track);
             let album_track = match self.album_track {
                 Some(s) => s.to_string(),
                 None =>UNKNOWN.to_string(),
@@ -245,7 +315,7 @@ pub mod music {
             };
 
             let queue_track = match self.queue_track {
-                Some(s) => s.pos.to_string(),
+                Some(s) => (s.pos+1).to_string(),
                 None =>UNKNOWN.to_string(),
             };
             let queue_total = match self.queue_total {
