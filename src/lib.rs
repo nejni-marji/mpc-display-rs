@@ -5,13 +5,18 @@ pub mod music {
         // Arc,
         Mutex,
     };
-    #[allow(unused_imports)]
-    use std::thread::{
-        sleep,
-        spawn,
+    use std::sync::{
+        mpsc::{
+            channel,
+            Receiver,
+        }
     };
+    use std::thread;
+    // use std::thread::{
+    //     sleep,
+    //     spawn,
+    // };
     use std::time::Duration;
-    #[allow(unused_imports)]
     use mpd::{
         Client,
         Idle,
@@ -28,9 +33,8 @@ pub mod music {
     pub struct Player {
         //TODO: does this need to be a mutex?
         client: Mutex<Client>,
-        pub data: Mutex<DataCache>,
-        #[allow(dead_code)]
-        quit: bool,
+        pub data: DataCache,
+        // quit: bool,
     }
 
     #[derive(Debug,Default,Clone)]
@@ -55,34 +59,64 @@ pub mod music {
     }
 
     impl Player {
-        //TODO: how to document things?
-        /// Player() does not self-initialize, see self.init().
         pub fn new(client: Client) -> Self {
             Self {
                 client: Mutex::new(client),
-                data: Mutex::new(DataCache::new()),
-                quit: false,
+                data: DataCache::new(),
+                // quit: false,
             }
         }
 
         pub fn init(&mut self) {
-            // TODO: have to handle this
-            let mut data = self.data.lock().expect("should be able to lock data");
+            let data = &mut self.data;
             data.update_status(&self.client);
             data.update_song(&self.client);
         }
 
         pub fn display(&mut self) {
-            // TODO: create some sort of messaging system between this and the
-            // display thread
             loop {
-                self.idle();
-                // TODO: send kill signal to thread
-                let data = self.data.lock().unwrap();
-                println!("{data}");
-                if data.state == State::Play {
-                    // TODO: spawn thread
+                // prepare channel
+                let (tx, rx) = channel::<bool>();
+
+                // spawn thread if we need it
+                if self.data.state == State::Play {
+                    // clone data for thread
+                    let data = self.data.clone();
+
+                    // assign thread handle to external variable
+                    _ = thread::spawn(move || {
+                        // Self::delay_thread(rx, self.data.clone());
+                        Self::delay_thread(rx, data);
+                    });
                 }
+
+                // wait for idle, then print
+                self.idle();
+                println!("{}", self.data);
+
+                // send signal to kill thread
+                let _ = tx.send(true);
+            }
+        }
+
+        fn delay_thread(rx: Receiver<bool>, mut data: DataCache) {
+            loop {
+                // sleep before doing anything
+                thread::sleep(Duration::from_secs(2));
+                let signal = rx.try_recv().unwrap_or(false);
+
+                // check quit signal, otherwise continue
+                if signal {
+                    eprintln!("break!");
+                    break
+                }
+
+                eprintln!("[duration]");
+                // increment time only when we print, otherwise it can break
+                // things
+                data.increment_time(2);
+                println!("{}", data);
+                thread::sleep(Duration::from_millis(100));
             }
         }
 
@@ -90,15 +124,15 @@ pub mod music {
             // use client to idle. no early drop
             let mut conn = self.client.lock()
                 .expect("should have client");
-            // sleep(Duration::from_secs(1));
             let subsystems = conn.wait(&[
                 Subsystem::Player, Subsystem::Mixer,
                 Subsystem::Options, Subsystem::Playlist,
             ]).unwrap();
             drop(conn);
-            println!("subsystems: {subsystems:?}");
+
+            eprintln!("subsystems: {subsystems:?}");
             for i in subsystems {
-                let mut data = self.data.lock().unwrap();
+                let data = &mut self.data;
                 match i {
                     Subsystem::Player => {
                         data.update_status(&self.client);
@@ -114,44 +148,10 @@ pub mod music {
                 }
             }
         }
-
-        /*
-        pub fn display_loop(data: Arc<Mutex<DataCache>>) {
-            const DELAY: u64 = 2;
-            let mut data = data.lock().unwrap();
-            println!("display_loop: {data:?}");
-            // while !self.quit {
-            loop {
-                if data.state == State::Play {
-                    println!("display_loop: PLAYING");
-                    //TODO: this can be an id value, no clone required
-                    let song_a = data.song.clone();
-                    sleep(Duration::from_secs(DELAY));
-                    let song_b = data.song.clone();
-                    if song_a == song_b && data.state == State::Play {
-                        data.increment_time(DELAY);
-                    }
-                    // if !self.quit {
-                    if true {
-                        println!("{}", data);
-                    }
-                } else {
-                    data.increment_time(DELAY);
-                    //TODO: what is this branch for?
-                    // i guess it's for quitting?
-                }
-            }
-        }
-        pub fn idle_loop(data: Arc<Mutex<DataCache>>) {
-            let data = data.lock().unwrap();
-            println!("idle_loop: {data:?}");
-        }
-        */
     }
 
     impl DataCache {
         pub fn new() -> Self {
-            //TODO: can this be a trait or something?
             Self::default()
         }
 

@@ -7,7 +7,7 @@ fn main() {
 
     println!("[startup]");
     player.init();
-    println!("{}", player.data.lock().unwrap());
+    println!("{}", player.data);
     player.display();
 
 
