@@ -2,20 +2,10 @@ pub mod music {
     use std::borrow::Cow::Borrowed;
     use std::fmt;
     use std::sync::{
-        // Arc,
+        mpsc,
         Mutex,
     };
-    use std::sync::{
-        mpsc::{
-            channel,
-            Receiver,
-        }
-    };
     use std::thread;
-    // use std::thread::{
-    //     sleep,
-    //     spawn,
-    // };
     use std::time::Duration;
     use mpd::{
         Client,
@@ -27,6 +17,13 @@ pub mod music {
         State,
         Subsystem,
         Term,
+    };
+    #[allow(unused_imports)]
+    use debug_print::{
+        debug_print as dprint,
+        debug_println as dprintln,
+        debug_eprint as deprint,
+        debug_eprintln as deprintln,
     };
 
     #[derive(Debug,Default)]
@@ -56,6 +53,10 @@ pub mod music {
         state: State,
         volume: i8,
         ersc_opts: Vec<bool>,
+        crossfade: Option<Duration>,
+    }
+
+    pub struct Playlist {
     }
 
     impl Player {
@@ -74,9 +75,16 @@ pub mod music {
         }
 
         pub fn display(&mut self) {
+            dprintln!("[startup]");
+            println!("{}", self.data);
+
+            #[cfg(debug_assertions)]
+            let mut counter_idle = 0;
             loop {
                 // prepare channel
-                let (tx, rx) = channel::<bool>();
+                // TODO: this doesn't need to be a boolean. we can just check if
+                // try_recv() is Ok or not.
+                let (tx, rx) = mpsc::channel::<bool>();
 
                 // spawn thread if we need it
                 if self.data.state == State::Play {
@@ -85,13 +93,16 @@ pub mod music {
 
                     // assign thread handle to external variable
                     _ = thread::spawn(move || {
-                        // Self::delay_thread(rx, self.data.clone());
                         Self::delay_thread(rx, data);
                     });
                 }
 
                 // wait for idle, then print
                 self.idle();
+                #[cfg(debug_assertions)] {
+                    counter_idle += 1;
+                }
+                dprintln!("[idle: {counter_idle}]");
                 println!("{}", self.data);
 
                 // send signal to kill thread
@@ -99,24 +110,32 @@ pub mod music {
             }
         }
 
-        fn delay_thread(rx: Receiver<bool>, mut data: DataCache) {
+        fn delay_thread(rx: mpsc::Receiver<bool>, mut data: DataCache) {
+            const DELAY: u64 = 1;
+            #[cfg(debug_assertions)]
+            let mut counter_delay = 0;
             loop {
                 // sleep before doing anything
-                thread::sleep(Duration::from_secs(2));
+                thread::sleep(Duration::from_secs(DELAY));
                 let signal = rx.try_recv().unwrap_or(false);
 
                 // check quit signal, otherwise continue
                 if signal {
-                    eprintln!("break!");
+                    dprintln!("[duration: break!]");
                     break
                 }
 
-                eprintln!("[duration]");
-                // increment time only when we print, otherwise it can break
-                // things
-                data.increment_time(2);
+                // increment time only when we print,
+                // otherwise it can break things.
+                data.increment_time(DELAY);
+                #[cfg(debug_assertions)] {
+                    counter_delay += 1;
+                }
+                dprintln!("[duration: {counter_delay}]");
                 println!("{}", data);
-                thread::sleep(Duration::from_millis(100));
+
+                // TODO: is this necessary?
+                // thread::sleep(Duration::from_millis(100));
             }
         }
 
@@ -130,7 +149,7 @@ pub mod music {
             ]).unwrap();
             drop(conn);
 
-            eprintln!("subsystems: {subsystems:?}");
+            dprintln!("[subsystems: {subsystems:?}]");
             for i in subsystems {
                 let data = &mut self.data;
                 match i {
@@ -176,6 +195,7 @@ pub mod music {
             self.ersc_opts = vec![
                 status.repeat, status.random,
                 status.single, status.consume];
+            self.crossfade = status.crossfade;
         }
 
         fn update_song(&mut self, client: &Mutex<Client>) {
@@ -235,7 +255,7 @@ pub mod music {
             match search {
                 Err(_) => { None },
                 Ok(search) => {
-                    // eprintln!("{search:?}");
+                    // dprintln!("{search:?}");
                     let mut track = None;
                     for (k, v) in song.tags {
                         if k == "Track" {
@@ -295,7 +315,7 @@ pub mod music {
             let title = self.title
                 .clone().unwrap_or(UNKNOWN.to_string());
 
-            // eprintln!("self.album_track: {:?}", self.album_track);
+            // dprintln!("self.album_track: {:?}", self.album_track);
             let album_track = match self.album_track {
                 Some(s) => s.to_string(),
                 None =>UNKNOWN.to_string(),
@@ -336,6 +356,10 @@ pub mod music {
             };
             let ersc_str = self.get_ersc();
             let volume = self.volume;
+            let crossfade = match self.crossfade {
+                Some(t) => format!(" (x: {})", t.as_secs()),
+                None => String::new(),
+            };
 
             // apply coloring!!!
             // TODO: can a macro be useful here?
@@ -356,8 +380,15 @@ pub mod music {
 
             // final format text
             write!(f,
-                "{col_artist}{artist}{col_end} * {col_title}{title}{col_end}\n({col_track}#{album_track}/{album_total}{col_end}) {col_album}{album}{col_end}\n{col_state}{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%{col_end}\n{col_state}{ersc_str}, {volume}%{col_end}"
+                "{col_artist}{artist}{col_end} * {col_title}{title}{col_end}\n({col_track}#{album_track}/{album_total}{col_end}) {col_album}{album}{col_end}\n{col_state}{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%{col_end}\n{col_state}{ersc_str}, {volume}%{crossfade}{col_end}"
                 )
+        }
+    }
+
+    impl Playlist {
+        pub fn new() -> Self {
+            Playlist {
+            }
         }
     }
 }
