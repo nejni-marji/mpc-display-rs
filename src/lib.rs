@@ -308,7 +308,6 @@ pub mod music {
                     value = Some(v);
                 }
             }
-            // TODO: why cloned?
             value.cloned()
         }
 
