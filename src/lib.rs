@@ -1,9 +1,7 @@
 #[allow(clippy::missing_panics_doc)]
-#[allow(clippy::cast_possible_wrap
- )]
+#[allow(clippy::cast_possible_wrap)]
 pub mod music {
     use std::borrow::Cow::Borrowed;
-    
     use std::fmt;
     use std::sync::{
         mpsc,
@@ -434,6 +432,9 @@ pub mod music {
             let tail = std::cmp::min(
                 queue_size,
                 head + height-HEADER_HEIGHT,
+                );
+            let tail = std::cmp::min(
+                tail, queue.len().try_into().unwrap_or(0)
                 );
 
             dprintln!("head: {head}");
