@@ -65,9 +65,6 @@ pub mod music {
         crossfade: Option<Duration>,
     }
 
-    pub struct Playlist {
-    }
-
     // TODO: once playlist display is implementented, you should cache the playlist string in the Player and only actually draw it when DataCache.update_playlist() is called!
     impl Player {
         #[must_use] pub fn new(client: Client) -> Self {
@@ -104,7 +101,7 @@ pub mod music {
 
                     // assign thread handle to external variable
                     _ = thread::spawn(move || {
-                        Self::delay_thread(rx, data);
+                        Self::delay_thread(&rx, data);
                     });
                 }
 
@@ -121,7 +118,7 @@ pub mod music {
             }
         }
 
-        fn delay_thread(rx: mpsc::Receiver<bool>, mut data: DataCache) {
+        fn delay_thread(rx: &mpsc::Receiver<bool>, mut data: DataCache) {
             const DELAY: u64 = 1;
             #[cfg(debug_assertions)]
             let mut counter_delay = 0;
@@ -225,10 +222,10 @@ pub mod music {
 
             // try to get album progress
             let album_progress = Self::get_album_nums(client, album.clone(), song.clone());
-            let (album_track, album_total) = match album_progress {
-                Some(s) => (Some(s.0), Some(s.1)),
-                None => (None, None),
-            };
+            let (album_track, album_total) = album_progress.map_or(
+                (None, None),
+                |s| (Some(s.0), Some(s.1)),
+                );
 
             // mutate data
             self.artist = song.artist;
@@ -246,7 +243,6 @@ pub mod music {
                 .unwrap_or_default();
             drop(conn);
 
-            // TODO: how to .enumerate() this into Vec<(u32, Song)>?
             self.queue = queue;
         }
 
@@ -277,13 +273,12 @@ pub mod music {
                         }
                     }
                     // return numeric value
-                    match track?.parse() {
-                        Err(_) => { None },
-                        Ok(track) =>
-                        {
-                            Some((track, u32::try_from(search.len()).expect("should be able to cast search")))
-                        }
-                    }
+                    track?.parse().map_or( None, |track|
+                        Some((track,
+                            u32::try_from(search.len())
+                            .expect("should be able to cast search")
+                        ))
+                    )
                 }
             }
         }
@@ -335,22 +330,22 @@ pub mod music {
             const UNKNOWN: &str = "?";
 
             let artist = self.artist
-                .clone().unwrap_or(UNKNOWN.to_string());
+                .clone().unwrap_or_else(|| UNKNOWN.to_string());
             let title = self.title
-                .clone().unwrap_or(UNKNOWN.to_string());
+                .clone().unwrap_or_else(|| UNKNOWN.to_string());
 
             // dprintln!("self.album_track: {:?}", self.album_track);
-            let album_track = match self.album_track {
-                Some(s) => s.to_string(),
-                None =>UNKNOWN.to_string(),
-            };
-            let album_total = match self.album_total {
-                Some(s) => s.to_string(),
-                None =>UNKNOWN.to_string(),
-            };
+            let album_track = self.album_track.map_or_else(
+                || UNKNOWN.to_string(),
+                |s| s.to_string()
+                );
+            let album_total = self.album_total.map_or_else(
+                || UNKNOWN.to_string(),
+                |s| s.to_string()
+                );
 
             let album = self.album
-                .clone().unwrap_or(UNKNOWN.to_string());
+                .clone().unwrap_or_else(|| UNKNOWN.to_string());
 
             let state = match self.state {
                 State::Play => "|>",
@@ -358,19 +353,19 @@ pub mod music {
                 State::Stop => "><",
             };
 
-            let queue_track = match self.queue_track {
-                Some(s) => (s.pos+1).to_string(),
-                None =>UNKNOWN.to_string(),
-            };
-            let queue_total = match self.queue_total {
-                Some(s) => s.to_string(),
-                None =>UNKNOWN.to_string(),
-            };
+            let queue_track = self.queue_track.map_or_else(
+                || UNKNOWN.to_string(),
+                |s| (s.pos+1).to_string(),
+                );
+            let queue_total = self.queue_total.map_or_else(
+                || UNKNOWN.to_string(),
+                |s| s.to_string(),
+                );
 
             let elapsed_pretty = Self::get_pretty_time(self.time_curr)
-                .unwrap_or(UNKNOWN.to_string());
+                .unwrap_or_else(|| UNKNOWN.to_string());
             let duration_pretty = Self::get_pretty_time(self.time_total)
-                .unwrap_or(UNKNOWN.to_string());
+                .unwrap_or_else(|| UNKNOWN.to_string());
 
             let percent = match (self.time_curr, self.time_total) {
                 (Some(curr), Some(total)) => {
@@ -380,10 +375,10 @@ pub mod music {
             };
             let ersc_str = self.get_ersc();
             let volume = self.volume;
-            let crossfade = match self.crossfade {
-                Some(t) => format!(" (x: {})", t.as_secs()),
-                None => String::new(),
-            };
+            let crossfade = self.crossfade.map_or_else(
+                String::new,
+                |t| format!(" (x: {})", t.as_secs()),
+                );
 
             // apply coloring!!!
             // TODO: can a macro be useful here?
@@ -394,7 +389,6 @@ pub mod music {
             let col_album  = "\x1b[36m";    // cyan
             let col_play   = "\x1b[32m";    // green
             let col_pause  = "\x1b[31m";    // red
-            let _col_plist = "\x1b[1m";     // bold
             let col_end    = "\x1b[0m";     // reset
 
             let col_state = match self.state {
@@ -410,7 +404,7 @@ pub mod music {
         }
 
         // TODO: clean this up after it's done
-            #[allow(clippy::let_and_return)]
+        #[allow(clippy::let_and_return)]
         fn print_queue(&self) -> String {
             // get terminal size
             let (w, h) = terminal_size()
@@ -421,10 +415,10 @@ pub mod music {
 
             // get some other variables
             let queue_size: u32 = self.queue.len().try_into().unwrap_or(0);
-            let song_pos = match self.song.place {
-                Some(p) => p.pos,
-                None => 0,
-            };
+            let song_pos = self.song.place.map_or_else(
+                || 0,
+                |p| p.pos,
+                );
 
             // determine padding for format_song()
             let padding = 1 + queue_size
@@ -437,7 +431,7 @@ pub mod music {
                 .clone().iter().map( |i| {
                     counter += 1;
                     let is_curr = counter == song_pos+1;
-                    Self::format_song(i.clone(), counter, padding, is_curr)
+                    Self::format_song(i, counter, padding, is_curr)
             })
             .collect::<Vec<_>>();
 
@@ -464,7 +458,6 @@ pub mod music {
             let queue = queue.join("\n");
 
             // wrapped queue
-            let _indent = "......";
             let opt = textwrap::Options::new(
                 width.try_into().expect("nothing should be that big")
                 );
@@ -506,18 +499,19 @@ pub mod music {
             queue
         }
 
-        fn format_song(song: Song, index: u32, padding: u32, is_curr: bool) -> String {
+        fn format_song(song: &Song, index: u32, padding: u32, is_curr: bool) -> String {
             let padding = padding.try_into().expect("nothing should be that big");
 
             let songtext = format!("{} * {} * {}",
                 song.title.clone().unwrap_or_else(|| "???".to_string()),
                 song.artist.clone().unwrap_or_else(|| "???".to_string()),
-                Self::get_metadata(&song, "album").unwrap_or("?".to_string()),
+                Self::get_metadata(song, "album").unwrap_or_else(|| "?".to_string()),
                 );
 
-            let (ansi1, ansi2) = match is_curr {
-                true => ("\x1b[1m", "\x1b[0m"),
-                false => ("", ""),
+            let (ansi1, ansi2) = if is_curr {
+                ("\x1b[1m", "\x1b[0m")
+            } else {
+                ("", "")
             };
 
             format!("{ansi1}  {index:>padding$}  {songtext}{ansi2}")
@@ -543,8 +537,7 @@ pub mod music {
             let head_err = head < 0;
             let tail_err = tail >= total;
             match (head_err, tail_err) {
-                (true, true) => { 0 } // this should never happen?
-                (true, false) => { 0 }
+                (true, _) => { 0 }
                 (false, true) => { total - display }
                 (false, false) => { head.try_into().expect("this should be impossible. i think?") }
             }
@@ -559,18 +552,4 @@ pub mod music {
                  )
         }
     }
-
-    impl Default for Playlist {
-        fn default() -> Self {
-            Self::new()
-        }
-    }
-
-    impl Playlist {
-        #[must_use] pub fn new() -> Self {
-            Self {
-            }
-        }
-    }
 }
-
