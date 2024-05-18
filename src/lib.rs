@@ -453,7 +453,8 @@ pub mod music {
             let queue = textwrap::wrap(&queue, opt);
 
             // re-crop the queue
-            let queue_size: u32 = self.queue.len().try_into().expect("nothing should be that big");
+            // do not use self.queue.
+            let queue_size: u32 = queue.len().try_into().expect("nothing should be that big");
             let mut song_pos: Option<u32> = None;
             for (i, v) in queue.iter().enumerate() {
                 if v.starts_with('\x1b') {
@@ -482,6 +483,7 @@ pub mod music {
             dprintln!("len: {}", queue.len());
 
             // second cropped queue
+            // TODO: code reuse
             let queue = queue.get(head as usize..tail as usize)
 				.unwrap_or_default();
 
