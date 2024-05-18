@@ -36,12 +36,12 @@ pub mod music {
     #[derive(Debug,Default)]
     pub struct Player {
         client: Mutex<Client>,
-        data: DataCache,
+        data: MusicData,
         // quit: bool,
     }
 
     #[derive(Debug,Default,Clone)]
-    struct DataCache {
+    struct MusicData {
         // everything that can potentially be missing is an Option type.
         // the exception to this is queue_total, which theoretically would be 0
         // when there is no value, but i've chosen to force it into an Option
@@ -63,12 +63,12 @@ pub mod music {
         crossfade: Option<Duration>,
     }
 
-    // TODO: once playlist display is implementented, you should cache the playlist string in the Player and only actually draw it when DataCache.update_playlist() is called!
+    // TODO: once playlist display is implementented, you should cache the playlist string in the Player and only actually draw it when MusicData.update_playlist() is called!
     impl Player {
         #[must_use] pub fn new(client: Client) -> Self {
             Self {
                 client: Mutex::new(client),
-                data: DataCache::new(),
+                data: MusicData::new(),
                 // quit: false,
             }
         }
@@ -114,7 +114,7 @@ pub mod music {
             }
         }
 
-        fn delay_thread(rx: &mpsc::Receiver<bool>, mut data: DataCache) {
+        fn delay_thread(rx: &mpsc::Receiver<bool>, mut data: MusicData) {
             const DELAY: u64 = 1;
             #[cfg(debug_assertions)]
             let mut counter_delay = 0;
@@ -170,7 +170,7 @@ pub mod music {
         }
     }
 
-    impl DataCache {
+    impl MusicData {
         #[must_use] pub fn new() -> Self {
             Self::default()
         }
@@ -550,7 +550,7 @@ pub mod music {
         }
     }
 
-    impl fmt::Display for DataCache {
+    impl fmt::Display for MusicData {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             write!(f, "{}\n{}",
                  self.print_header(),
