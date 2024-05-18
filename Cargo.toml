@@ -12,4 +12,7 @@ unwrap_used = "warn"
 expect_used = "warn"
 
 [dependencies]
+debug_print = "1.0.0"
 mpd = "0.1.0"
+terminal_size = "0.3.0"
+textwrap = "0.16.1"
