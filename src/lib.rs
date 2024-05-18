@@ -236,6 +236,7 @@ pub mod music {
                 .expect("should have client");
             let queue = conn.queue()
                 .unwrap_or_default();
+            dprintln!("[update_playlist()]\n[{queue:?}]");
             drop(conn);
 
             self.queue = queue;
@@ -472,9 +473,13 @@ pub mod music {
                 queue_size,
                 head + height-HEADER_HEIGHT,
                 );
+            let tail = std::cmp::min(
+                tail, queue.len().try_into().unwrap_or(0)
+                );
 
             dprintln!("head: {head}");
             dprintln!("tail: {tail}");
+            dprintln!("len: {}", queue.len());
 
             // second cropped queue
             let queue = queue.get(head as usize..tail as usize)
