@@ -146,7 +146,7 @@ pub mod music {
                 .expect("should have client");
             let subsystems = conn.wait(&[
                 Subsystem::Player, Subsystem::Mixer,
-                Subsystem::Options, Subsystem::Playlist,
+                Subsystem::Options, Subsystem::Queue,
             ]).unwrap_or_default();
             drop(conn);
 
@@ -161,7 +161,7 @@ pub mod music {
                     Subsystem::Mixer | Subsystem::Options => {
                         data.update_status(&self.client);
                     }
-                    Subsystem::Playlist => {
+                    Subsystem::Queue => {
                         data.update_playlist(&self.client);
                     }
                     _ => {}
