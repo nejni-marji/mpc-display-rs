@@ -1,6 +1,7 @@
+#[allow(clippy::missing_panics_doc)]
 pub mod music {
     use std::borrow::Cow::Borrowed;
-    use std::env;
+    
     use std::fmt;
     use std::sync::{
         mpsc,
@@ -74,9 +75,9 @@ pub mod music {
 
     // TODO: once playlist display is implementented, you should cache the playlist string in the Player and only actually draw it when DataCache.update_playlist() is called!
     impl Player {
-        pub fn new(client: Client) -> Self {
+        #[must_use] pub fn new(client: Client) -> Self {
             let (w, h) = terminal_size()
-                .unwrap();
+                .expect("should have terminal");
             dprintln!("terminal is {h:?} height and {w:?} width");
             Self {
                 client: Mutex::new(client),
@@ -84,8 +85,8 @@ pub mod music {
                 // quit: false,
                 // height: 35-0, // 36
                 // width: 60, // 87
-                height: (h.0 as u32)-1,
-                width: w.0 as u32,
+                height: u32::from(h.0)-1,
+                width: u32::from(w.0),
             }
         }
 
@@ -156,7 +157,7 @@ pub mod music {
                     counter_delay += 1;
                 }
                 dprintln!("[duration: {counter_delay}]");
-                println!("{}", data);
+                println!("{data}");
 
                 // TODO: is this necessary?
                 // thread::sleep(Duration::from_millis(100));
@@ -170,7 +171,7 @@ pub mod music {
             let subsystems = conn.wait(&[
                 Subsystem::Player, Subsystem::Mixer,
                 Subsystem::Options, Subsystem::Playlist,
-            ]).unwrap();
+            ]).unwrap_or_default();
             drop(conn);
 
             dprintln!("[subsystems: {subsystems:?}]");
@@ -194,7 +195,7 @@ pub mod music {
     }
 
     impl DataCache {
-        pub fn new() -> Self {
+        #[must_use] pub fn new() -> Self {
             Self::default()
         }
 
@@ -264,10 +265,7 @@ pub mod music {
         }
 
         fn increment_time(&mut self, n: u64) {
-            self.time_curr = match self.time_curr {
-                Some(t) => Some(t + Duration::from_secs(n)),
-                None => None
-            }
+            self.time_curr = self.time_curr.map(|t| t + Duration::from_secs(n));
         }
 
         // TODO: optimize this by caching the result on a per-album basis
@@ -330,7 +328,7 @@ pub mod music {
         }
 
         // TODO: should not be public
-        pub fn get_metadata(song: &Song, tag: &str) -> Option<String> {
+        #[must_use] pub fn get_metadata(song: &Song, tag: &str) -> Option<String> {
             let mut value = None;
             for (k, v) in &song.tags {
                 if k.to_ascii_lowercase() == tag.to_ascii_lowercase() {
@@ -426,14 +424,18 @@ pub mod music {
         }
 
         // TODO: clean this up after it's done
+            #[allow(clippy::let_and_return)]
         fn print_queue(&self) -> String {
-            let queue_size: u32 = self.queue.len().try_into().unwrap();
-            let song_pos = self.song.place.unwrap().pos;
+            let queue_size: u32 = self.queue.len().try_into().unwrap_or(0);
+            let song_pos = match self.song.place {
+                Some(p) => p.pos,
+                None => 0,
+            };
 
             // determine padding for format_song()
             let padding = 1 + queue_size
                 .checked_ilog10()
-                .unwrap();
+                .unwrap_or_default();
 
             // queue to vec of song-strings
             let mut counter = 0;
@@ -462,24 +464,24 @@ pub mod music {
 
             // first cropped queue
             let queue = queue.get(head as usize..tail as usize)
-				.unwrap();
+				.unwrap_or_default();
 
             // textual queue
             let queue = queue.join("\n");
 
             // wrapped queue
-            let indent = "......";
+            let _indent = "......";
             let opt = textwrap::Options::new(
-                self.width.try_into().unwrap()
+                self.width.try_into().expect("nothing should be that big")
                 );
             let queue = textwrap::wrap(&queue, opt);
 
             // re-crop the queue
-            let queue_size: u32 = self.queue.len().try_into().unwrap();
+            let queue_size: u32 = self.queue.len().try_into().expect("nothing should be that big");
             let mut song_pos: Option<u32> = None;
             for (i, v) in queue.iter().enumerate() {
-                if v.starts_with("\x1b") {
-                    song_pos = Some(i.try_into().unwrap());
+                if v.starts_with('\x1b') {
+                    song_pos = Some(i.try_into().expect("nothing should be that big"));
                 }
             }
             let song_pos = song_pos.unwrap_or(0);
@@ -501,22 +503,21 @@ pub mod music {
 
             // second cropped queue
             let queue = queue.get(head as usize..tail as usize)
-				.unwrap();
+				.unwrap_or_default();
 
             // join queue
             let queue = queue.join("\n");
 
             // finally return
             queue
-            // "...".to_string()
         }
 
         fn format_song(song: Song, index: u32, padding: u32, is_curr: bool) -> String {
-            let padding = padding.try_into().unwrap();
+            let padding = padding.try_into().expect("nothing should be that big");
 
             let songtext = format!("{} * {} * {}",
-                song.title.clone().unwrap(),
-                song.artist.clone().unwrap(),
+                song.title.clone().unwrap_or_else(|| "???".to_string()),
+                song.artist.clone().unwrap_or_else(|| "???".to_string()),
                 Self::get_metadata(&song, "album").unwrap_or("?".to_string()),
                 );
 
@@ -551,7 +552,7 @@ pub mod music {
                 (true, true) => { 0 } // this should never happen?
                 (true, false) => { 0 }
                 (false, true) => { total - display }
-                (false, false) => { head.try_into().unwrap() }
+                (false, false) => { head.try_into().expect("this should be impossible. i think?") }
             }
         }
     }
@@ -565,9 +566,15 @@ pub mod music {
         }
     }
 
+    impl Default for Playlist {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
     impl Playlist {
-        pub fn new() -> Self {
-            Playlist {
+        #[must_use] pub fn new() -> Self {
+            Self {
             }
         }
     }
