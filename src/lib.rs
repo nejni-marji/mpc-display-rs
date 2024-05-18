@@ -393,6 +393,7 @@ pub mod music {
         // TODO: clean this up after it's done
         #[allow(clippy::let_and_return)]
         fn print_queue(&self) -> String {
+            // get terminal height
             let (height, width) = match terminal_size() {
                 Some((w,h)) => (u32::from(h.0)-1, u32::from(w.0)),
                 None => (24, 80),
@@ -414,7 +415,7 @@ pub mod music {
             // queue to vec of song-strings
             let mut counter = 0;
             let queue = self.queue
-                .clone().iter().map( |i| {
+                .clone().iter().map(|i| {
                     counter += 1;
                     let is_curr = counter == song_pos+1;
                     Self::format_song(i, counter, padding, is_curr)
