@@ -39,8 +39,6 @@ pub mod music {
         client: Mutex<Client>,
         pub data: DataCache,
         // quit: bool,
-        height: u32,
-        width: u32,
     }
 
     #[derive(Debug,Default,Clone)]
@@ -65,9 +63,6 @@ pub mod music {
         volume: i8,
         ersc_opts: Vec<bool>,
         crossfade: Option<Duration>,
-        // fields required for display purposes
-        height: u32,
-        width: u32,
     }
 
     pub struct Playlist {
@@ -76,24 +71,15 @@ pub mod music {
     // TODO: once playlist display is implementented, you should cache the playlist string in the Player and only actually draw it when DataCache.update_playlist() is called!
     impl Player {
         #[must_use] pub fn new(client: Client) -> Self {
-            let (w, h) = terminal_size()
-                .expect("should have terminal");
-            dprintln!("terminal is {h:?} height and {w:?} width");
             Self {
                 client: Mutex::new(client),
                 data: DataCache::new(),
                 // quit: false,
-                // height: 35-0, // 36
-                // width: 60, // 87
-                height: u32::from(h.0)-1,
-                width: u32::from(w.0),
             }
         }
 
         pub fn init(&mut self) {
             let data = &mut self.data;
-            data.height = self.height;
-            data.width = self.width;
             data.update_status(&self.client);
             data.update_song(&self.client);
             data.update_playlist(&self.client);
@@ -426,6 +412,14 @@ pub mod music {
         // TODO: clean this up after it's done
             #[allow(clippy::let_and_return)]
         fn print_queue(&self) -> String {
+            // get terminal size
+            let (w, h) = terminal_size()
+                .expect("should have terminal");
+            let height = u32::from(h.0)-1;
+            let width  = u32::from(w.0);
+            dprintln!("terminal is {h:?} height and {w:?} width");
+
+            // get some other variables
             let queue_size: u32 = self.queue.len().try_into().unwrap_or(0);
             let song_pos = match self.song.place {
                 Some(p) => p.pos,
@@ -449,14 +443,14 @@ pub mod music {
 
             // prepare to crop the queue
             let head = Self::get_centered_index(
-                self.height-HEADER_HEIGHT,
+                height-HEADER_HEIGHT,
                 queue_size,
                 song_pos,
                 );
             // tail = min(plSize, head+height)
             let tail = std::cmp::min(
                 queue_size,
-                head + self.height-HEADER_HEIGHT,
+                head + height-HEADER_HEIGHT,
                 );
 
             dprintln!("head: {head}");
@@ -472,7 +466,7 @@ pub mod music {
             // wrapped queue
             let _indent = "......";
             let opt = textwrap::Options::new(
-                self.width.try_into().expect("nothing should be that big")
+                width.try_into().expect("nothing should be that big")
                 );
             let queue = textwrap::wrap(&queue, opt);
 
@@ -488,14 +482,14 @@ pub mod music {
 
             // prepare to crop the queue
             let head = Self::get_centered_index(
-                self.height-HEADER_HEIGHT,
+                height-HEADER_HEIGHT,
                 queue_size,
                 song_pos,
                 );
             // tail = min(plSize, head+height)
             let tail = std::cmp::min(
                 queue_size,
-                head + self.height-HEADER_HEIGHT,
+                head + height-HEADER_HEIGHT,
                 );
 
             dprintln!("head: {head}");
