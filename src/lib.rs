@@ -1,4 +1,5 @@
 #[allow(clippy::missing_panics_doc)]
+#[allow(clippy::cast_possible_wrap)]
 pub mod music {
     use std::borrow::Cow::Borrowed;
     
