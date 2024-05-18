@@ -1,3 +1,4 @@
+// vim: fdl=1
 #[allow(clippy::missing_panics_doc)]
 #[allow(clippy::cast_possible_wrap)]
 pub mod music {
@@ -442,7 +443,7 @@ pub mod music {
 
             // first cropped queue
             let queue = queue.get(head as usize..tail as usize)
-				.unwrap_or_default();
+                .unwrap_or_default();
 
             // textual queue
             let queue = queue.join("\n");
@@ -486,9 +487,9 @@ pub mod music {
             // second cropped queue
             // TODO: code reuse
             let queue = queue.get(head as usize..tail as usize)
-				.unwrap_or_default();
+                .unwrap_or_default();
 
-			// create padding to add later
+            // create padding to add later
             let len = queue.len().try_into().unwrap_or(0);
             let mut diff: i32 = ((height-HEADER_HEIGHT) - len).
                 try_into().unwrap_or(0);
