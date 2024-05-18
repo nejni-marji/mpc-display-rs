@@ -1,5 +1,6 @@
 #[allow(clippy::missing_panics_doc)]
-#[allow(clippy::cast_possible_wrap)]
+#[allow(clippy::cast_possible_wrap
+ )]
 pub mod music {
     use std::borrow::Cow::Borrowed;
     
@@ -36,15 +37,13 @@ pub mod music {
 
     #[derive(Debug,Default)]
     pub struct Player {
-        // TODO: does this need to be a mutex?
         client: Mutex<Client>,
-        pub data: DataCache,
+        data: DataCache,
         // quit: bool,
     }
 
     #[derive(Debug,Default,Clone)]
-    // TODO: does not need to be public
-    pub struct DataCache {
+    struct DataCache {
         // everything that can potentially be missing is an Option type.
         // the exception to this is queue_total, which theoretically would be 0
         // when there is no value, but i've chosen to force it into an Option
@@ -91,13 +90,11 @@ pub mod music {
             let mut counter_idle = 0;
             loop {
                 // prepare channel
-                // TODO: this doesn't need to be a boolean. we can just check if try_recv() is Ok or not.
-                let (tx, rx) = mpsc::channel::<bool>();
+                let (tx, rx) = mpsc::channel();
 
                 // spawn thread if we need it
                 if self.data.state == State::Play {
                     // clone data for thread
-                    // TODO: replace clone with something that nulls the playlist
                     let data = self.data.clone();
 
                     // assign thread handle to external variable
@@ -142,9 +139,6 @@ pub mod music {
                 }
                 dprintln!("[duration: {counter_delay}]");
                 println!("{data}");
-
-                // TODO: is this necessary?
-                // thread::sleep(Duration::from_millis(100));
             }
         }
 
@@ -256,7 +250,7 @@ pub mod music {
             // build query
             let mut query = Query::new();
             query.and(Term::Tag(Borrowed("Album")), album?);
-            let window = Window::from((0,u32::from(u16::MAX))); // TODO: make const?
+            let window = Window::from((0,u32::from(u16::MAX)));
             // lock client and search
             let mut conn = client.lock()
                 .expect("should have client");
@@ -298,7 +292,6 @@ pub mod music {
             for (i, v) in base.iter().enumerate() {
                 ersc.push(
                     // this unwrap_or is... middling at best, i think
-                    // TODO: move this unwrap into display?
                     if *ersc_opts.get(i).unwrap_or(&false) {
                         v.to_ascii_uppercase()
                     } else {
@@ -309,8 +302,7 @@ pub mod music {
             ersc
         }
 
-        // TODO: should not be public
-        #[must_use] pub fn get_metadata(song: &Song, tag: &str) -> Option<String> {
+        fn get_metadata(song: &Song, tag: &str) -> Option<String> {
             let mut value = None;
             for (k, v) in &song.tags {
                 if k.to_ascii_lowercase() == tag.to_ascii_lowercase() {
@@ -325,11 +317,16 @@ pub mod music {
             // artist, title, albtrack, albtot, alb, state, qtrack, qtot,
             // elapsed_pretty, duration_pretty, percent, ersc_str, volume
 
-            // start defining some variables
-
-            // TODO: find a way to make this better?
+            const COL_ARTIST : &str = "\x1b[1;36m";  // bold cyan
+            const COL_TITLE  : &str = "\x1b[1;34m";  // bold blue
+            const COL_TRACK  : &str = "\x1b[32m";    // green
+            const COL_ALBUM  : &str = "\x1b[36m";    // cyan
+            const COL_PLAY   : &str = "\x1b[32m";    // green
+            const COL_PAUSE  : &str = "\x1b[31m";    // red
+            const COL_END    : &str = "\x1b[0m";     // reset
             const UNKNOWN: &str = "?";
 
+            // start defining some variables
             let artist = self.artist
                 .clone().unwrap_or_else(|| UNKNOWN.to_string());
             let title = self.title
@@ -382,37 +379,27 @@ pub mod music {
                 );
 
             // apply coloring!!!
-            // TODO: can a macro be useful here?
-            // TODO: should these be constants?
-            let col_artist = "\x1b[1;36m";  // bold cyan
-            let col_title  = "\x1b[1;34m";  // bold blue
-            let col_track  = "\x1b[32m";    // green
-            let col_album  = "\x1b[36m";    // cyan
-            let col_play   = "\x1b[32m";    // green
-            let col_pause  = "\x1b[31m";    // red
-            let col_end    = "\x1b[0m";     // reset
 
             let col_state = match self.state {
-                State::Play => col_play,
+                State::Play => COL_PLAY,
                 State::Pause | State::Stop =>
-                    col_pause,
+                    COL_PAUSE,
             };
 
             // final format text
             format!(
-                "{col_artist}{artist}{col_end} * {col_title}{title}{col_end}\n({col_track}#{album_track}/{album_total}{col_end}) {col_album}{album}{col_end}\n{col_state}{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%{col_end}\n{col_state}{ersc_str}, {volume}%{crossfade}{col_end}"
+                "{COL_ARTIST}{artist}{COL_END} * {COL_TITLE}{title}{COL_END}\n({COL_TRACK}#{album_track}/{album_total}{COL_END}) {COL_ALBUM}{album}{COL_END}\n{col_state}{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%{COL_END}\n{col_state}{ersc_str}, {volume}%{crossfade}{COL_END}"
                 )
         }
 
         // TODO: clean this up after it's done
         #[allow(clippy::let_and_return)]
         fn print_queue(&self) -> String {
-            // get terminal size
-            let (w, h) = terminal_size()
-                .expect("should have terminal");
-            let height = u32::from(h.0)-1;
-            let width  = u32::from(w.0);
-            dprintln!("terminal is {h:?} height and {w:?} width");
+            let (height, width) = match terminal_size() {
+                Some((w,h)) => (u32::from(h.0)-1, u32::from(w.0)),
+                None => (24, 80),
+            };
+            dprintln!("[terminal: height {height}, width {width}]");
 
             // get some other variables
             let queue_size: u32 = self.queue.len().try_into().unwrap_or(0);
@@ -493,8 +480,20 @@ pub mod music {
             let queue = queue.get(head as usize..tail as usize)
 				.unwrap_or_default();
 
-            // join queue
-            let queue = queue.join("\n");
+			// create padding to add later
+            let len = queue.len().try_into().unwrap_or(0);
+            let mut diff: i32 = ((height-HEADER_HEIGHT) - len).
+                try_into().unwrap_or(0);
+            if diff < 0 {
+                diff = 0;
+            }
+            diff += 1;
+            let diff = diff.try_into().unwrap_or(0);
+            let queue_padding = vec![""; diff].join("\n");
+
+            // join queue and add padding
+            let queue = queue.join("\n")
+                + &queue_padding;
 
             // finally return
             queue
