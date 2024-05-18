@@ -9,7 +9,7 @@ edition = "2021"
 pedantic = "warn"
 nursery = "warn"
 unwrap_used = "warn"
-expect_used = "warn"
+# expect_used = "warn"
 
 [dependencies]
 debug_print = "1.0.0"
