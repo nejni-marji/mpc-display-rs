@@ -5,6 +5,7 @@ use mpc_display_rs::music::Player;
 
 fn main() {
     let args = Args::parse();
+    #[cfg(debug_assertions)]
     println!("{args:?}");
 
     // get argument vars

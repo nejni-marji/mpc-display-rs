@@ -244,7 +244,7 @@ pub mod music {
                 .expect("should have client");
             let queue = conn.queue()
                 .unwrap_or_default();
-            dprintln!("[update_playlist()]\n[{queue:?}]");
+            // dprintln!("[update_playlist()]\n[{queue:?}]");
             drop(conn);
 
             self.queue = queue;
