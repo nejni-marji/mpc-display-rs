@@ -12,6 +12,7 @@ unwrap_used = "warn"
 # expect_used = "warn"
 
 [dependencies]
+clap = { version = "4.5.4", features = ["derive"] }
 debug_print = "1.0.0"
 mpd = "0.1.0"
 terminal_size = "0.3.0"

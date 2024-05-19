@@ -24,6 +24,8 @@ pub mod music {
     use terminal_size::terminal_size;
     use textwrap;
 
+    const UNKNOWN: &str = "?";
+
     #[allow(unused_imports)]
     use debug_print::{
         debug_print as dprint,
@@ -36,11 +38,14 @@ pub mod music {
     pub struct Player {
         client: Mutex<Client>,
         data: MusicData,
+        format: Vec<String>,
         // quit: bool,
     }
 
     #[derive(Debug,Default,Clone)]
     struct MusicData {
+        // non-music data
+        format: Vec<String>,
         // everything that can potentially be missing is an Option type.
         // the exception to this is queue_total, which theoretically would be 0
         // when there is no value, but i've chosen to force it into an Option
@@ -65,16 +70,18 @@ pub mod music {
 
     // TODO: once playlist display is implementented, you should cache the playlist string in the Player and only actually draw it when MusicData.update_playlist() is called!
     impl Player {
-        #[must_use] pub fn new(client: Client) -> Self {
+        #[must_use] pub fn new(client: Client, format: Vec<String>) -> Self {
             Self {
                 client: Mutex::new(client),
                 data: MusicData::new(),
+                format,
                 // quit: false,
             }
         }
 
         pub fn init(&mut self) {
             let data = &mut self.data;
+            data.format = self.format.clone();
             data.update_status(&self.client);
             data.update_song(&self.client);
             data.update_playlist(&self.client);
@@ -323,7 +330,6 @@ pub mod music {
             const COL_PLAY   : &str = "\x1b[32m";    // green
             const COL_PAUSE  : &str = "\x1b[31m";    // red
             const COL_END    : &str = "\x1b[0m";     // reset
-            const UNKNOWN: &str = "?";
 
             // start defining some variables
             let artist = self.artist
@@ -414,7 +420,7 @@ pub mod music {
                 .clone().iter().map(|i| {
                     counter += 1;
                     let is_curr = counter == song_pos+1;
-                    Self::format_song(i, counter, padding, is_curr)
+                    self.format_song(i, counter, padding, is_curr)
             })
             .collect::<Vec<_>>();
 
@@ -503,21 +509,39 @@ pub mod music {
             queue
         }
 
-        fn format_song(song: &Song, index: u32, padding: u32, is_curr: bool) -> String {
-            let padding = padding.try_into().expect("nothing should be that big");
+        fn format_song(&self, song: &Song, index: u32, padding: u32, is_curr: bool) -> String {
 
-            let songtext = format!("{} * {} * {}",
-                song.title.clone().unwrap_or_else(|| "???".to_string()),
-                song.artist.clone().unwrap_or_else(|| "???".to_string()),
-                Self::get_metadata(song, "album").unwrap_or_else(|| "?".to_string()),
-                );
-
+            // get colors
             let (ansi1, ansi2) = if is_curr {
                 ("\x1b[1m", "\x1b[0m")
             } else {
                 ("", "")
             };
 
+            // get padding
+            let padding = padding.try_into().expect("nothing should be that big");
+
+            // get song text
+            let mut tags = Vec::new();
+            for i in self.format.clone() {
+                let i = i.as_str();
+                tags.push(match i {
+                    "title" => song.title
+                        .clone().unwrap_or_else(|| UNKNOWN.to_string()),
+                    "artist" => song.artist
+                        .clone().unwrap_or_else(|| UNKNOWN.to_string()),
+                    _ => Self::get_metadata(song, i)
+                        .unwrap_or_else(|| UNKNOWN.to_string()),
+                });
+            }
+
+            let songtext = tags.join(" * ");
+
+            // let songtext = format!("{} * {} * {}",
+            //     song.title.clone().unwrap_or_else(|| "???".to_string()),
+            //     song.artist.clone().unwrap_or_else(|| "???".to_string()),
+            //     Self::get_metadata(song, "album").unwrap_or_else(|| "?".to_string()),
+            //     );
             format!("{ansi1}  {index:>padding$}  {songtext}{ansi2}")
         }
 
