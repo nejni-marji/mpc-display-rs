@@ -50,6 +50,7 @@ pub mod music {
         artist: Option<String>,
         title: Option<String>,
         album: Option<String>,
+        date: Option<String>,
         album_track: Option<u32>,
         album_total: Option<u32>,
         queue_track: Option<QueuePlace>,
@@ -219,10 +220,13 @@ pub mod music {
                 |s| (Some(s.0), Some(s.1)),
                 );
 
+            let date = Self::get_metadata(&song, "date");
+
             // mutate data
             self.artist = song.artist;
             self.title = song.title;
             self.album = album;
+            self.date = date;
             self.album_track = album_track;
             self.album_total = album_total;
         }
@@ -311,13 +315,11 @@ pub mod music {
         }
 
         fn print_header(&self) -> String {
-            // artist, title, albtrack, albtot, alb, state, qtrack, qtot,
-            // elapsed_pretty, duration_pretty, percent, ersc_str, volume
-
             const COL_ARTIST : &str = "\x1b[1;36m";  // bold cyan
             const COL_TITLE  : &str = "\x1b[1;34m";  // bold blue
             const COL_TRACK  : &str = "\x1b[32m";    // green
             const COL_ALBUM  : &str = "\x1b[36m";    // cyan
+            const COL_DATE   : &str = "\x1b[33m";    // bold yellow
             const COL_PLAY   : &str = "\x1b[32m";    // green
             const COL_PAUSE  : &str = "\x1b[31m";    // red
             const COL_END    : &str = "\x1b[0m";     // reset
@@ -340,6 +342,9 @@ pub mod music {
                 );
 
             let album = self.album
+                .clone().unwrap_or_else(|| UNKNOWN.to_string());
+
+            let date = self.date
                 .clone().unwrap_or_else(|| UNKNOWN.to_string());
 
             let state = match self.state {
@@ -384,7 +389,7 @@ pub mod music {
 
             // final format text
             format!(
-                "{COL_ARTIST}{artist}{COL_END} * {COL_TITLE}{title}{COL_END}\n({COL_TRACK}#{album_track}/{album_total}{COL_END}) {COL_ALBUM}{album}{COL_END}\n{col_state}{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%{COL_END}\n{col_state}{ersc_str}, {volume}%{crossfade}{COL_END}"
+                "{COL_ARTIST}{artist}{COL_END} * {COL_TITLE}{title}{COL_END}\n({COL_TRACK}#{album_track}/{album_total}{COL_END}) {COL_ALBUM}{album}{COL_END} {COL_DATE}({date}){COL_END}\n{col_state}{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%{COL_END}\n{col_state}{ersc_str}, {volume}%{crossfade}{COL_END}"
                 )
         }
 
