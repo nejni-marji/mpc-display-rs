@@ -376,7 +376,6 @@ pub mod music {
                 );
 
             // apply coloring!!!
-
             let col_state = match self.state {
                 State::Play => COL_PLAY,
                 State::Pause | State::Stop =>
