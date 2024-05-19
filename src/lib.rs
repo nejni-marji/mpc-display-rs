@@ -24,8 +24,6 @@ pub mod music {
     use terminal_size::terminal_size;
     use textwrap;
 
-    const HEADER_HEIGHT: u32 = 4;
-
     #[allow(unused_imports)]
     use debug_print::{
         debug_print as dprint,
@@ -391,16 +389,9 @@ pub mod music {
                 )
         }
 
-        // TODO: clean this up after it's done
+        // TODO: clean this up after it's done. this is probably full of other bugs, lol!
         #[allow(clippy::let_and_return)]
-        fn print_queue(&self) -> String {
-            // get terminal height
-            let (height, width) = match terminal_size() {
-                Some((w,h)) => (u32::from(h.0)-1, u32::from(w.0)),
-                None => (24, 80),
-            };
-            dprintln!("[terminal: height {height}, width {width}]");
-
+        fn print_queue(&self, height: u32, width: u32, header_height: u32) -> String {
             // get some other variables
             let queue_size: u32 = self.queue.len().try_into().unwrap_or(0);
             let song_pos = self.song.place.map_or_else(
@@ -425,14 +416,14 @@ pub mod music {
 
             // prepare to crop the queue
             let head = Self::get_centered_index(
-                height-HEADER_HEIGHT,
+                height-header_height,
                 queue_size,
                 song_pos,
                 );
             // tail = min(plSize, head+height)
             let tail = std::cmp::min(
                 queue_size,
-                head + height-HEADER_HEIGHT,
+                head + height-header_height,
                 );
             let tail = std::cmp::min(
                 tail, queue.len().try_into().unwrap_or(0)
@@ -467,14 +458,14 @@ pub mod music {
 
             // prepare to crop the queue
             let head = Self::get_centered_index(
-                height-HEADER_HEIGHT,
+                height-header_height,
                 queue_size,
                 song_pos,
                 );
             // tail = min(plSize, head+height)
             let tail = std::cmp::min(
                 queue_size,
-                head + height-HEADER_HEIGHT,
+                head + height-header_height,
                 );
             let tail = std::cmp::min(
                 tail, queue.len().try_into().unwrap_or(0)
@@ -491,7 +482,7 @@ pub mod music {
 
             // create padding to add later
             let len = queue.len().try_into().unwrap_or(0);
-            let mut diff: i32 = ((height-HEADER_HEIGHT) - len).
+            let mut diff: i32 = ((height-header_height) - len).
                 try_into().unwrap_or(0);
             if diff < 0 {
                 diff = 0;
@@ -555,10 +546,28 @@ pub mod music {
 
     impl fmt::Display for MusicData {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            // get terminal height
+            let (height, width) = match terminal_size() {
+                Some((w,h)) => (u32::from(h.0)-1, u32::from(w.0)),
+                None => (24, 80),
+            };
+            dprintln!("[terminal: height {height}, width {width}]");
+
+            // get header size
+            let header = self.print_header();
+            let opt = textwrap::Options::new(
+                width.try_into().expect("nothing should be that big")
+                );
+            let header_height = textwrap::wrap(
+                header.clone().as_str(), opt
+                ).len()
+                .try_into().expect("should be able to cast header size");
+            dprintln!("[header_height: {header_height}]");
+
             write!(f, "{}\n{}",
-                 self.print_header(),
-                 self.print_queue(),
-                 )
+                header,
+                self.print_queue(height, width, header_height),
+                )
         }
     }
 }
