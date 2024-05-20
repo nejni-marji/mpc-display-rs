@@ -588,9 +588,9 @@ pub mod music {
                 width.try_into().expect("nothing should be that big")
                 );
             let header = textwrap::fill(
-                header.clone().as_str(), opt
+                header.as_str(), opt
                 );
-            let header_height = (1 + header.matches("\n").count())
+            let header_height = (1 + header.matches('\n').count())
                 .try_into().expect("should be able to cast header size");
             dprintln!("[header_height: {header_height}]");
 
