@@ -170,6 +170,7 @@ pub mod music {
                     }
                     Subsystem::Queue => {
                         data.update_playlist(&self.client);
+                        data.update_song(&self.client);
                     }
                     _ => {}
                 }
