@@ -497,7 +497,7 @@ pub mod music {
             let queue_size: u32 = queue.len().try_into().expect("nothing should be that big");
             let mut song_pos: Option<u32> = None;
             for (i, v) in queue.iter().enumerate() {
-                if v.starts_with('\x1b') {
+                if ! v.starts_with(' ') {
                     song_pos = Some(i.try_into().expect("nothing should be that big"));
                 }
             }
@@ -549,7 +549,6 @@ pub mod music {
         fn format_song(&self, song: &Song, index: u32, padding: u32, is_curr: bool) -> String {
 
             // get colors
-            //const COL_CURR   : &str = "\x1b[1m";     // bold
             const COL_CURR   : &str = "\x1b[7m";     // reverse
             const COL_END    : &str = "\x1b[0m";     // reset
             let (ansi1, ansi2, curr) = if is_curr {
@@ -577,8 +576,7 @@ pub mod music {
 
             let songtext = tags.join(" * ");
 
-            // TODO: the specifics where {ansi1} goes is still up in the air
-            format!("{curr} {index:>padding$}  {ansi1}{songtext}{ansi2}")
+            format!("{ansi1}{curr} {index:>padding$}  {songtext}{ansi2}")
         }
 
         // ported directly from python, i did my best...

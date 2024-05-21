@@ -19,7 +19,7 @@ fn main() {
         .collect()
     };
 
-    // make player object
+    // run player
     let mut player = Player::new(address, format);
     player.init();
     player.display();
