@@ -70,7 +70,6 @@ pub mod music {
         crossfade: Option<Duration>,
     }
 
-    // TODO: once playlist display is implementented, you should cache the playlist string in the Player and only actually draw it when MusicData.update_playlist() is called!
     impl Player {
         #[must_use] pub fn new(client: Client, format: Vec<String>) -> Self {
             Self {
