@@ -4,6 +4,8 @@
 pub mod music {
     use std::borrow::Cow::Borrowed;
     use std::fmt;
+    use std::io;
+    use std::io::Write;
     use std::sync::{
         mpsc,
         Mutex,
@@ -89,7 +91,7 @@ pub mod music {
 
         pub fn display(&mut self) {
             dprintln!("[startup]");
-            println!("{}", self.data);
+            self.data.display();
 
             #[cfg(debug_assertions)]
             let mut counter_idle = 0;
@@ -114,7 +116,7 @@ pub mod music {
                     counter_idle += 1;
                 }
                 dprintln!("[idle: {counter_idle}]");
-                println!("{}", self.data);
+                self.data.display();
 
                 // send signal to kill thread
                 let _ = tx.send(true);
@@ -143,7 +145,7 @@ pub mod music {
                     counter_delay += 1;
                 }
                 dprintln!("[duration: {counter_delay}]");
-                println!("{data}");
+                data.display();
             }
         }
 
@@ -181,6 +183,15 @@ pub mod music {
     impl MusicData {
         #[must_use] pub fn new() -> Self {
             Self::default()
+        }
+
+        pub fn display(&self) {
+            // TODO: move this into main and catch ^C to print "\x1b[?25h"
+            print!("\x1b[?25l");
+            print!("\x1b[2J");
+            print!("{self}");
+            print!("\x1b[H");
+            io::stdout().flush().unwrap();
         }
 
         fn update_status(&mut self, client: &Mutex<Client>) {
@@ -577,7 +588,7 @@ pub mod music {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             // get terminal height
             let (height, width) = match terminal_size() {
-                Some((w,h)) => (u32::from(h.0)-1, u32::from(w.0)),
+                Some((w,h)) => (u32::from(h.0), u32::from(w.0)),
                 None => (24, 80),
             };
             dprintln!("[terminal: height {height}, width {width}]");
