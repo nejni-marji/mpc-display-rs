@@ -524,10 +524,13 @@ pub mod music {
         fn format_song(&self, song: &Song, index: u32, padding: u32, is_curr: bool) -> String {
 
             // get colors
-            let (ansi1, ansi2) = if is_curr {
-                ("\x1b[1m", "\x1b[0m")
+            //const COL_CURR   : &str = "\x1b[1m";     // bold
+            const COL_CURR   : &str = "\x1b[7m";     // reverse
+            const COL_END    : &str = "\x1b[0m";     // reset
+            let (ansi1, ansi2, curr) = if is_curr {
+                (COL_CURR, COL_END, '>')
             } else {
-                ("", "")
+                ("", "", ' ')
             };
 
             // get padding
@@ -549,12 +552,7 @@ pub mod music {
 
             let songtext = tags.join(" * ");
 
-            // let songtext = format!("{} * {} * {}",
-            //     song.title.clone().unwrap_or_else(|| "???".to_string()),
-            //     song.artist.clone().unwrap_or_else(|| "???".to_string()),
-            //     Self::get_metadata(song, "album").unwrap_or_else(|| "?".to_string()),
-            //     );
-            format!("{ansi1}  {index:>padding$}  {songtext}{ansi2}")
+            format!("{ansi1}{curr} {index:>padding$}  {songtext}{ansi2}")
         }
 
         // ported directly from python, i did my best...
