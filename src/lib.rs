@@ -187,6 +187,7 @@ pub mod music {
 
         pub fn display(&self) {
             // TODO: move this into main and catch ^C to print "\x1b[?25h"
+            #[cfg(not(debug_assertions))]
             print!("\x1b[?25l");
             print!("\x1b[2J");
             print!("{self}");
