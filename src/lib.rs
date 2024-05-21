@@ -38,10 +38,11 @@ pub mod music {
 
     #[derive(Debug,Default)]
     pub struct Player {
+        //address: String,
         client: Mutex<Client>,
         data: MusicData,
         format: Vec<String>,
-        // quit: bool,
+        quit: bool,
     }
 
     #[derive(Debug,Default,Clone)]
@@ -71,12 +72,16 @@ pub mod music {
     }
 
     impl Player {
-        #[must_use] pub fn new(client: Client, format: Vec<String>) -> Self {
+        #[must_use] pub fn new(address: String, format: Vec<String>) -> Self {
             Self {
-                client: Mutex::new(client),
+                //address: address.clone(),
+                client: Mutex::new(
+                    Client::connect(address)
+                    .expect("should have client")
+                    ),
                 data: MusicData::new(),
                 format,
-                // quit: false,
+                quit: false,
             }
         }
 
@@ -95,6 +100,11 @@ pub mod music {
             #[cfg(debug_assertions)]
             let mut counter_idle = 0;
             loop {
+                // check quit status
+                if self.quit {
+                    break
+                }
+
                 // prepare channel
                 let (tx, rx) = mpsc::channel();
 
@@ -155,6 +165,7 @@ pub mod music {
             let subsystems = conn.wait(&[
                 Subsystem::Player, Subsystem::Mixer,
                 Subsystem::Options, Subsystem::Queue,
+                Subsystem::Subscription,
             ]).unwrap_or_default();
             drop(conn);
 
@@ -173,6 +184,21 @@ pub mod music {
                         data.update_playlist(&self.client);
                         data.update_song(&self.client);
                     }
+                    Subsystem::Subscription => {
+                        // get channel list
+                        let mut conn = self.client.lock()
+                            .expect("should have client");
+                        let channels = conn.channels().unwrap();
+                        dprintln!("{channels:?}");
+                        drop(conn);
+
+                        // check for quit channel
+                        for i in &channels {
+                            if *i == mpd::message::Channel::new("quit").unwrap() {
+                                self.quit = true;
+                            }
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -184,7 +210,10 @@ pub mod music {
             Self::default()
         }
 
+        #[allow(unreachable_code)]
         pub fn display(&self) {
+            println!("display!");
+            return;
             // TODO: move this into main and catch ^C to print "\x1b[?25h"
             #[cfg(not(debug_assertions))]
             print!("\x1b[?25l");

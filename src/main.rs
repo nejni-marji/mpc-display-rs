@@ -1,6 +1,5 @@
 use std::string::ToString;
 use clap::Parser;
-use mpd::Client;
 use mpc_display_rs::music::Player;
 
 fn main() {
@@ -21,8 +20,7 @@ fn main() {
     };
 
     // make player object
-    let conn = Client::connect(address).expect("should have client");
-    let mut player = Player::new(conn, format);
+    let mut player = Player::new(address, format);
     player.init();
     player.display();
 }
