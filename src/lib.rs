@@ -212,9 +212,6 @@ pub mod music {
 
         pub fn display(&self) {
             println!("display!");
-            // TODO: move this into main and catch ^C to print "\x1b[?25h"
-            #[cfg(not(debug_assertions))]
-            print!("\x1b[?25l");
             print!("\x1b[2J{self}\x1b[H");
             io::stdout().flush().expect("should be able to flush buffer");
         }

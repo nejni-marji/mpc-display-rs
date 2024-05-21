@@ -22,7 +22,12 @@ fn main() {
     // run player
     let mut player = Player::new(address, format);
     player.init();
+    #[cfg(not(debug_assertions))]
+    print!("\x1b[?25l");
+    // TODO: run display() in a thread, catch ^C and use it to run: Client.subscribe(mpd::message::Channel::new("quit").unwrap())
     player.display();
+    #[cfg(not(debug_assertions))]
+    print!("\x1b[?25h");
 }
 
 /// Displays the current state of an MPD server.
