@@ -551,7 +551,8 @@ pub mod music {
 
             let songtext = tags.join(" * ");
 
-            format!("{ansi1}{curr} {index:>padding$}  {songtext}{ansi2}")
+            // TODO: the specifics where {ansi1} goes is still up in the air
+            format!("{curr} {index:>padding$}  {ansi1}{songtext}{ansi2}")
         }
 
         // ported directly from python, i did my best...
