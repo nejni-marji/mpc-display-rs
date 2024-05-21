@@ -210,10 +210,8 @@ pub mod music {
             Self::default()
         }
 
-        #[allow(unreachable_code)]
         pub fn display(&self) {
             println!("display!");
-            return;
             // TODO: move this into main and catch ^C to print "\x1b[?25h"
             #[cfg(not(debug_assertions))]
             print!("\x1b[?25l");
