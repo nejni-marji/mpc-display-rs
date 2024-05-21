@@ -83,7 +83,7 @@ pub mod music {
 
         pub fn init(&mut self) {
             let data = &mut self.data;
-            data.format = self.format.clone();
+            data.format.clone_from(&self.format);
             data.update_status(&self.client);
             data.update_song(&self.client);
             data.update_playlist(&self.client);
@@ -189,10 +189,8 @@ pub mod music {
             // TODO: move this into main and catch ^C to print "\x1b[?25h"
             #[cfg(not(debug_assertions))]
             print!("\x1b[?25l");
-            print!("\x1b[2J");
-            print!("{self}");
-            print!("\x1b[H");
-            io::stdout().flush().unwrap();
+            print!("\x1b[2J{self}\x1b[H");
+            io::stdout().flush().expect("should be able to flush buffer");
         }
 
         fn update_status(&mut self, client: &Mutex<Client>) {
