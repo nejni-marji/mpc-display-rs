@@ -765,21 +765,30 @@ pub mod input {
 
     fn getch() -> Result<u8, std::io::Error> {
         let stdin = 0;
-        let termios = Termios::from_fd(stdin)?;
-        // make a mutable copy of termios that we will modify
-        #[allow(clippy::clone_on_copy)]
-        let mut new_termios = termios.clone();
+        let backup_termios = Termios::from_fd(stdin).unwrap();
+
+        // call this as a function so that we can always reset termios
+        let ch = getch_raw();
+
+        // reset the stdin to original termios data
+        tcsetattr(stdin, TCSANOW, & backup_termios).unwrap();
+        ch
+    }
+
+    fn getch_raw() -> Result<u8, std::io::Error> {
+        let stdin = 0;
+        let mut termios = Termios::from_fd(stdin).unwrap();
         // no echo and canonical mode
-        new_termios.c_lflag &= !(ICANON | ECHO);
-        tcsetattr(stdin, TCSANOW, &new_termios)?;
+        termios.c_lflag &= !(ICANON | ECHO);
+        tcsetattr(stdin, TCSANOW, &termios)?;
+
         let stdout = io::stdout();
         let mut reader = io::stdin();
+
         // read exactly one byte
         let mut buffer = [0;1];
         stdout.lock().flush()?;
         reader.read_exact(&mut buffer)?;
-        // reset the stdin to original termios data
-        tcsetattr(stdin, TCSANOW, & termios)?;
 
         Ok(buffer[0])
     }
