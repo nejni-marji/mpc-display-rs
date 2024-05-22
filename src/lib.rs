@@ -78,7 +78,7 @@ pub mod music {
                 //address: address.clone(),
                 client: Mutex::new(
                     Client::connect(address)
-                    .expect("should have client")
+                    .expect("unable to lock client")
                     ),
                 data: MusicData::new(),
                 format,
@@ -87,6 +87,8 @@ pub mod music {
         }
 
         pub fn init(&mut self) {
+            dprintln!("{:?}", self.client.lock().unwrap().queue());
+            return;
             let data = &mut self.data;
             data.format.clone_from(&self.format);
             data.update_status(&self.client);
@@ -162,7 +164,7 @@ pub mod music {
         fn idle(&mut self) {
             // use client to idle. no early drop
             let mut conn = self.client.lock()
-                .expect("should have client");
+                .expect("unable to lock client");
             let subsystems = conn.wait(&[
                 Subsystem::Player, Subsystem::Mixer,
                 Subsystem::Options, Subsystem::Queue,
@@ -188,7 +190,7 @@ pub mod music {
                     Subsystem::Subscription => {
                         // get channel list
                         let mut conn = self.client.lock()
-                            .expect("should have client");
+                            .expect("unable to lock client");
                         let channels = conn.channels().unwrap_or_default();
                         dprintln!("{channels:?}");
                         drop(conn);
@@ -214,13 +216,13 @@ pub mod music {
 
         pub fn display(&self) {
             print!("\x1b[?25l\x1b[2J{self}\x1b[H");
-            io::stdout().flush().expect("should be able to flush buffer");
+            io::stdout().flush().expect("unable to flush buffer");
         }
 
         fn update_status(&mut self, client: &Mutex<Client>) {
             // use client to get some data
             let mut conn = client.lock()
-                .expect("should have client");
+                .expect("unable to lock client");
             let status = conn.status()
                 .unwrap_or_default();
             drop(conn);
@@ -244,7 +246,7 @@ pub mod music {
         fn update_song(&mut self, client: &Mutex<Client>) {
             // use client to get some data
             let mut conn = client.lock()
-                .expect("should have client");
+                .expect("unable to lock client");
             let song = conn.currentsong()
                 .unwrap_or_default().unwrap_or_default();
             drop(conn);
@@ -276,7 +278,7 @@ pub mod music {
         fn update_playlist(&mut self, client: &Mutex<Client>) {
             // use client to get some data
             let mut conn = client.lock()
-                .expect("should have client");
+                .expect("unable to lock client");
             let queue = conn.queue()
                 .unwrap_or_default();
             // dprintln!("[update_playlist()]\n[{queue:?}]");
@@ -297,7 +299,7 @@ pub mod music {
             let window = Window::from((0,u32::from(u16::MAX)));
             // lock client and search
             let mut conn = client.lock()
-                .expect("should have client");
+                .expect("unable to lock client");
             let search = conn.search(&query, window);
             drop(conn);
             // parse search
@@ -315,7 +317,7 @@ pub mod music {
                     track?.parse().map_or( None, |track|
                         Some((track,
                             u32::try_from(search.len())
-                            .expect("should be able to cast search")
+                            .expect("can't cast search length")
                         ))
                     )
                 }
@@ -545,7 +547,6 @@ pub mod music {
         }
 
         fn format_song(&self, song: &Song, index: u32, padding: u32, is_curr: bool) -> String {
-
             // get colors
             const COL_CURR   : &str = "\x1b[7m";     // reverse
             const COL_END    : &str = "\x1b[0m";     // reset
@@ -622,7 +623,7 @@ pub mod music {
                 header.as_str(), opt
                 );
             let header_height = (1 + header.matches('\n').count())
-                .try_into().expect("should be able to cast header size");
+                .try_into().expect("can't cast header size");
             dprintln!("[header_height: {header_height}]");
 
             write!(f, "{}\n{}",
@@ -655,7 +656,7 @@ pub mod input {
         #[must_use] pub fn new(address: String) -> Self {
             Self {
                 client: Arc::new(Mutex::new(Client::connect(address)
-                    .expect("should have client")))
+                    .expect("unable to lock client")))
             }
         }
 
@@ -668,16 +669,15 @@ pub mod input {
                     thread::sleep(Duration::from_secs(60));
                     client
                         .lock()
-                        .unwrap()
+                        .expect("should be able to get command connection")
                         .status()
                         .expect("failed keepalive!");
                 }
             });
 
             loop {
-
                 let ch = getch().unwrap_or_default();
-                let mut conn = self.client.lock().unwrap();
+                let mut conn = self.client.lock().expect("should be able to get command connection");
                 match ch {
                     // Quit
                     b'q' => {
@@ -777,13 +777,14 @@ pub mod input {
                         println!("getch(): {ch}");
                     }
                 }
+                drop(conn);
             }
         }
     }
 
     fn getch() -> Result<u8, std::io::Error> {
         let stdin = 0;
-        let backup_termios = Termios::from_fd(stdin).unwrap();
+        let backup_termios = Termios::from_fd(stdin).expect("can't get file descriptor");
 
         // call this as a function so that we can always reset termios
         let ch = getch_raw();
@@ -795,7 +796,7 @@ pub mod input {
 
     fn getch_raw() -> Result<u8, std::io::Error> {
         let stdin = 0;
-        let mut termios = Termios::from_fd(stdin).unwrap();
+        let mut termios = Termios::from_fd(stdin).expect("can't get file descriptor");
         // no echo and canonical mode
         termios.c_lflag &= !(ICANON | ECHO);
         tcsetattr(stdin, TCSANOW, &termios)?;
