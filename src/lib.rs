@@ -7,23 +7,10 @@ pub mod music {
     use std::fmt;
     use std::io;
     use std::io::Write;
-    use std::sync::{
-        mpsc,
-        Mutex,
-    };
+    use std::sync::{mpsc, Mutex};
     use std::thread;
     use std::time::Duration;
-    use mpd::{
-        Client,
-        Idle,
-        Query,
-        search::Window,
-        Song,
-        song::QueuePlace,
-        State,
-        Subsystem,
-        Term,
-    };
+    use mpd::{Client, Idle, Query, search::Window, Song, song::QueuePlace, State, Subsystem, Term};
     use terminal_size::terminal_size;
     use textwrap;
 
@@ -51,6 +38,7 @@ pub mod music {
         // non-music data
         format: Vec<String>,
         ditto_tags: Vec<bool>,
+        //use_ditto: bool,
         // everything that can potentially be missing is an Option type.
         // the exception to this is queue_total, which theoretically would be 0
         // when there is no value, but i've chosen to force it into an Option
@@ -71,6 +59,7 @@ pub mod music {
         volume: i8,
         ersc_opts: Vec<bool>,
         crossfade: Option<Duration>,
+        rating: Option<String>,
     }
 
     impl Player {
@@ -93,6 +82,7 @@ pub mod music {
             data.update_status(&self.client);
             data.update_song(&self.client);
             data.update_playlist(&self.client);
+            data.update_sticker(&self.client);
         }
 
         pub fn display(&mut self) {
@@ -167,7 +157,7 @@ pub mod music {
             let subsystems = conn.wait(&[
                 Subsystem::Player, Subsystem::Mixer,
                 Subsystem::Options, Subsystem::Queue,
-                Subsystem::Subscription,
+                Subsystem::Subscription, Subsystem::Sticker,
             ]).unwrap_or_default();
             drop(conn);
 
@@ -178,6 +168,7 @@ pub mod music {
                     Subsystem::Player => {
                         data.update_status(&self.client);
                         data.update_song(&self.client);
+                        data.update_sticker(&self.client);
                     }
                     Subsystem::Mixer | Subsystem::Options => {
                         data.update_status(&self.client);
@@ -185,6 +176,7 @@ pub mod music {
                     Subsystem::Queue => {
                         data.update_playlist(&self.client);
                         data.update_song(&self.client);
+                        data.update_sticker(&self.client);
                     }
                     Subsystem::Subscription => {
                         // get channel list
@@ -201,6 +193,9 @@ pub mod music {
                                 self.quit = true;
                             }
                         }
+                    }
+                    Subsystem::Sticker => {
+                        data.update_sticker(&self.client);
                     }
                     _ => {}
                 }
@@ -320,7 +315,18 @@ pub mod music {
                 self.format.clone().len(),
                 self.ditto_tags.clone().len(),
             );
+        }
 
+        fn update_sticker(&mut self, client: &Mutex<Client>) {
+            // use client to get some data
+            let mut conn = client.lock()
+                .expect("unable to lock client");
+            let rating = conn.sticker("song", &self.song.file, "rating")
+                .ok();
+            // dprintln!("[update_playlist()]\n[{queue:?}]");
+            drop(conn);
+
+            self.rating = rating;
         }
 
         fn print_header(&self) -> String {
@@ -329,6 +335,7 @@ pub mod music {
             const COL_TRACK  : &str = "\x1b[32m";    // green
             const COL_ALBUM  : &str = "\x1b[36m";    // cyan
             const COL_DATE   : &str = "\x1b[33m";    // bold yellow
+            const COL_RATING : &str = "\x1b[35;1m";  // bold magenta
             const COL_PLAY   : &str = "\x1b[32m";    // green
             const COL_PAUSE  : &str = "\x1b[31m";    // red
             const COL_END    : &str = "\x1b[0m";     // reset
@@ -381,6 +388,28 @@ pub mod music {
                 },
                 _ =>UNKNOWN.to_string()
             };
+
+            let rating = self.rating
+                .clone().map_or_else(
+                    String::new,
+                    |r| {
+                        const STARS: [&str; 3] = ["<3", "< ", " ."];
+
+                        let n = r.parse().unwrap_or(0);
+                        let (a, b) = if n >= 10 {
+                            (5, 0)
+                        } else {
+                            (n/2, n%2)
+                        };
+                        let c = std::cmp::max(0, 5-a-b);
+
+                        format!("{}{}{}",
+                            STARS[0].repeat(a),
+                            STARS[1].repeat(b),
+                            STARS[2].repeat(c),
+                        )
+                    });
+
             let ersc_str = self.get_ersc();
             let volume = self.volume;
             let crossfade = self.crossfade.map_or_else(
@@ -397,7 +426,7 @@ pub mod music {
 
             // final format text
             format!(
-                "{COL_ARTIST}{artist}{COL_END} * {COL_TITLE}{title}{COL_END}\n({COL_TRACK}#{album_track}/{album_total}{COL_END}) {COL_ALBUM}{album}{COL_END} {COL_DATE}({date}){COL_END}\n{col_state}{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%{COL_END}\n{col_state}{ersc_str}, {volume}%{crossfade}{COL_END}"
+                "{COL_ARTIST}{artist}{COL_END} * {COL_TITLE}{title}{COL_END}\n({COL_TRACK}#{album_track}/{album_total}{COL_END}) {COL_ALBUM}{album}{COL_END} {COL_DATE}({date}){COL_END}\n{col_state}{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%{COL_END}  {COL_RATING}{rating}{COL_END}\n{col_state}{ersc_str}, {volume}%{crossfade}{COL_END}"
                 )
         }
 
@@ -700,7 +729,6 @@ pub mod input {
         }
 
         pub fn init(&mut self) {
-
             // create keepalive thread
             let client = Arc::clone(&self.client);
             thread::spawn(move || {
