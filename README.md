@@ -22,4 +22,6 @@ Options:
 ```
 
 ## Screenshots
-![](images/demo1.png "demo 1")
+<!--![](images/demo1.png "demo 1")-->
+![](images/demo2.png "demo")
+![](images/demo3.png "demo")
