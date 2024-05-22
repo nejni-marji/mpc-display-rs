@@ -638,6 +638,7 @@ pub mod input {
     use std::io;
     use std::io::Read;
     use std::io::Write;
+    use std::time::Duration;
     use termios::{Termios, TCSANOW, ECHO, ICANON, tcsetattr};
     use mpd::{
         Client,
@@ -680,21 +681,45 @@ pub mod input {
                         }
                     }
 
-                    // Prev (vim K)
+                    // Prev
                     b'p' | b'k' => { let _ = self.client.prev(); }
-                    // Next (vim J)
+                    // Next
                     b'n' | b'j' => { let _ = self.client.next(); }
-                    // volume Up (vim L)
+                    // volume Up
                     b'=' | b'+' | b')' => {
                         let vol = self.client.status().unwrap_or_default().volume;
                         let vol = std::cmp::min(100, vol+5);
                         let _ = self.client.volume(vol);
                     }
-                    // volume Down (vim H)
+                    // volume Down
                     b'-' | b'_' | b'(' => {
                         let vol = self.client.status().unwrap_or_default().volume;
+                        // volume is i8, so you can do this
                         let vol = std::cmp::max(0, vol-5);
                         let _ = self.client.volume(vol);
+                    }
+
+                    // seek backwards
+                    b'h' => {
+                        let time = self.client.status()
+                            .unwrap_or_default()
+                            .elapsed
+                            .unwrap_or_default();
+                        let time = if time.as_secs() <= 10 {
+                            Duration::from_secs(0)
+                        } else {
+                            time - Duration::from_secs(10)
+                        };
+                        let _ = self.client.rewind(time);
+                    }
+                    // seek forwards
+                    b'l' => {
+                        let time = self.client.status()
+                            .unwrap_or_default()
+                            .elapsed
+                            .unwrap_or_default();
+                        let time = time + Duration::from_secs(10);
+                        let _ = self.client.rewind(time);
                     }
 
                     // rEpeat
@@ -739,23 +764,23 @@ pub mod input {
     }
 
     fn getch() -> Result<u8, std::io::Error> {
-        let stdin = 0; // couldn't get std::os::unix::io::FromRawFd to work 
-                       // on /dev/stdin or /dev/tty
+        let stdin = 0;
         let termios = Termios::from_fd(stdin)?;
+        // make a mutable copy of termios that we will modify
         #[allow(clippy::clone_on_copy)]
-        let mut new_termios = termios.clone();  // make a mutable copy of termios 
-                                                // that we will modify
-        new_termios.c_lflag &= !(ICANON | ECHO); // no echo and canonical mode
+        let mut new_termios = termios.clone();
+        // no echo and canonical mode
+        new_termios.c_lflag &= !(ICANON | ECHO);
         tcsetattr(stdin, TCSANOW, &new_termios)?;
         let stdout = io::stdout();
         let mut reader = io::stdin();
-        let mut buffer = [0;1];  // read exactly one byte
-        //print!("Hit a key! ");
+        // read exactly one byte
+        let mut buffer = [0;1];
         stdout.lock().flush()?;
         reader.read_exact(&mut buffer)?;
-        //println!("You have hit: {:?}", buffer);
-        tcsetattr(stdin, TCSANOW, & termios)?;  // reset the stdin to 
-                                                        // original termios data
+        // reset the stdin to original termios data
+        tcsetattr(stdin, TCSANOW, & termios)?;
+
         Ok(buffer[0])
     }
 
