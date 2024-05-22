@@ -189,13 +189,14 @@ pub mod music {
                         // get channel list
                         let mut conn = self.client.lock()
                             .expect("should have client");
-                        let channels = conn.channels().unwrap();
+                        let channels = conn.channels().unwrap_or_default();
                         dprintln!("{channels:?}");
                         drop(conn);
 
                         // check for quit channel
                         for i in &channels {
-                            if *i == mpd::message::Channel::new("quit").unwrap() {
+                            if *i == mpd::message::Channel::new("quit")
+                                .expect("should be able to make quit channel") {
                                 self.quit = true;
                             }
                         }
@@ -632,6 +633,7 @@ pub mod music {
     }
 }
 
+#[allow(clippy::missing_panics_doc)]
 pub mod input {
     use std::io;
     use std::io::Read;
@@ -647,7 +649,7 @@ pub mod input {
     }
 
     impl KeyHandler {
-        pub fn new(address: String) -> Self {
+        #[must_use] pub fn new(address: String) -> Self {
             Self {
                 client: Client::connect(address)
                     .expect("should have client")
@@ -656,18 +658,19 @@ pub mod input {
 
         pub fn init(&mut self) {
             loop {
-                let ch = getch();
+                let ch = getch().unwrap_or_default();
                 match ch {
                     // Quit
                     b'q' => {
                         let _ = self.client.subscribe(
-                            mpd::message::Channel::new("quit").unwrap()
+                            mpd::message::Channel::new("quit")
+                                .expect("should be able to make quit channel")
                         );
                         break;
                     }
                     // space for pause/play
                     b' ' => {
-                        match self.client.status().unwrap().state {
+                        match self.client.status().unwrap_or_default().state {
                             State::Play => {
                                 let _ = self.client.pause(true);
                             }
@@ -683,39 +686,35 @@ pub mod input {
                     b'n' | b'j' => { let _ = self.client.next(); }
                     // volume Up (vim L)
                     b'=' | b'+' | b')' => {
-                        let vol = self.client.status().unwrap().volume;
+                        let vol = self.client.status().unwrap_or_default().volume;
                         let vol = std::cmp::min(100, vol+5);
                         let _ = self.client.volume(vol);
                     }
                     // volume Down (vim H)
                     b'-' | b'_' | b'(' => {
-                        let vol = self.client.status().unwrap().volume;
-                        let vol = if vol < 5 {
-                            0
-                        } else {
-                            vol-5
-                        };
+                        let vol = self.client.status().unwrap_or_default().volume;
+                        let vol = std::cmp::max(0, vol-5);
                         let _ = self.client.volume(vol);
                     }
 
                     // rEpeat
                     b'e' => {
-                        let state = self.client.status().unwrap().repeat;
+                        let state = self.client.status().unwrap_or_default().repeat;
                         let _ = self.client.repeat(!state);
                     }
                     // Random
                     b'r' => {
-                        let state = self.client.status().unwrap().random;
+                        let state = self.client.status().unwrap_or_default().random;
                         let _ = self.client.random(!state);
                     }
                     // Single
                     b's' => {
-                        let state = self.client.status().unwrap().single;
+                        let state = self.client.status().unwrap_or_default().single;
                         let _ = self.client.single(!state);
                     }
                     // Consume
                     b'c' => {
-                        let state = self.client.status().unwrap().consume;
+                        let state = self.client.status().unwrap_or_default().consume;
                         let _ = self.client.consume(!state);
                     }
 
@@ -731,6 +730,7 @@ pub mod input {
 
                     // default
                     _ => {
+                        #[cfg(debug_assertions)]
                         println!("getch(): {ch}");
                     }
                 }
@@ -738,24 +738,25 @@ pub mod input {
         }
     }
 
-    fn getch() -> u8 {
+    fn getch() -> Result<u8, std::io::Error> {
         let stdin = 0; // couldn't get std::os::unix::io::FromRawFd to work 
                        // on /dev/stdin or /dev/tty
-        let termios = Termios::from_fd(stdin).unwrap();
+        let termios = Termios::from_fd(stdin)?;
+        #[allow(clippy::clone_on_copy)]
         let mut new_termios = termios.clone();  // make a mutable copy of termios 
                                                 // that we will modify
         new_termios.c_lflag &= !(ICANON | ECHO); // no echo and canonical mode
-        tcsetattr(stdin, TCSANOW, &mut new_termios).unwrap();
+        tcsetattr(stdin, TCSANOW, &new_termios)?;
         let stdout = io::stdout();
         let mut reader = io::stdin();
         let mut buffer = [0;1];  // read exactly one byte
         //print!("Hit a key! ");
-        stdout.lock().flush().unwrap();
-        reader.read_exact(&mut buffer).unwrap();
+        stdout.lock().flush()?;
+        reader.read_exact(&mut buffer)?;
         //println!("You have hit: {:?}", buffer);
-        tcsetattr(stdin, TCSANOW, & termios).unwrap();  // reset the stdin to 
+        tcsetattr(stdin, TCSANOW, & termios)?;  // reset the stdin to 
                                                         // original termios data
-        buffer[0]
+        Ok(buffer[0])
     }
 
 }

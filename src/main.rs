@@ -27,8 +27,9 @@ fn main() {
     thread::spawn(move || { player.display(); });
 
     // initialize input
-    let mut parser = KeyHandler::new(address.clone());
-    parser.init()
+    let mut parser = KeyHandler::new(address);
+    parser.init();
+    println!("\x1b[?25h");
 }
 
 /// Displays the current state of an MPD server.
