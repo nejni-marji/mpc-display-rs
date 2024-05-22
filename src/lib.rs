@@ -638,6 +638,8 @@ pub mod input {
     use std::io;
     use std::io::Read;
     use std::io::Write;
+    use std::sync::{Arc, Mutex};
+    use std::thread;
     use std::time::Duration;
     use termios::{Termios, TCSANOW, ECHO, ICANON, tcsetattr};
     use mpd::{
@@ -646,24 +648,40 @@ pub mod input {
     };
 
     pub struct KeyHandler {
-        client: Client,
+        client: Arc<Mutex<Client>>,
     }
 
     impl KeyHandler {
         #[must_use] pub fn new(address: String) -> Self {
             Self {
-                client: Client::connect(address)
-                    .expect("should have client")
+                client: Arc::new(Mutex::new(Client::connect(address)
+                    .expect("should have client")))
             }
         }
 
         pub fn init(&mut self) {
+
+            // create keepalive thread
+            let client = Arc::clone(&self.client);
+            thread::spawn(move || {
+                loop {
+                    thread::sleep(Duration::from_secs(60));
+                    client
+                        .lock()
+                        .unwrap()
+                        .status()
+                        .expect("failed keepalive!");
+                }
+            });
+
             loop {
+
                 let ch = getch().unwrap_or_default();
+                let mut conn = self.client.lock().unwrap();
                 match ch {
                     // Quit
                     b'q' => {
-                        let _ = self.client.subscribe(
+                        let _ = conn.subscribe(
                             mpd::message::Channel::new("quit")
                                 .expect("should be able to make quit channel")
                         );
@@ -671,37 +689,37 @@ pub mod input {
                     }
                     // space for pause/play
                     b' ' => {
-                        match self.client.status().unwrap_or_default().state {
+                        match conn.status().unwrap_or_default().state {
                             State::Play => {
-                                let _ = self.client.pause(true);
+                                let _ = conn.pause(true);
                             }
                             State::Pause | State::Stop => {
-                                let _ = self.client.play();
+                                let _ = conn.play();
                             }
                         }
                     }
 
                     // Prev
-                    b'p' | b'k' => { let _ = self.client.prev(); }
+                    b'p' | b'k' => { let _ = conn.prev(); }
                     // Next
-                    b'n' | b'j' => { let _ = self.client.next(); }
+                    b'n' | b'j' => { let _ = conn.next(); }
                     // volume Up
                     b'=' | b'+' | b')' => {
-                        let vol = self.client.status().unwrap_or_default().volume;
+                        let vol = conn.status().unwrap_or_default().volume;
                         let vol = std::cmp::min(100, vol+5);
-                        let _ = self.client.volume(vol);
+                        let _ = conn.volume(vol);
                     }
                     // volume Down
                     b'-' | b'_' | b'(' => {
-                        let vol = self.client.status().unwrap_or_default().volume;
+                        let vol = conn.status().unwrap_or_default().volume;
                         // volume is i8, so you can do this
                         let vol = std::cmp::max(0, vol-5);
-                        let _ = self.client.volume(vol);
+                        let _ = conn.volume(vol);
                     }
 
                     // seek backwards
                     b'h' => {
-                        let time = self.client.status()
+                        let time = conn.status()
                             .unwrap_or_default()
                             .elapsed
                             .unwrap_or_default();
@@ -710,47 +728,47 @@ pub mod input {
                         } else {
                             time - Duration::from_secs(10)
                         };
-                        let _ = self.client.rewind(time);
+                        let _ = conn.rewind(time);
                     }
                     // seek forwards
                     b'l' => {
-                        let time = self.client.status()
+                        let time = conn.status()
                             .unwrap_or_default()
                             .elapsed
                             .unwrap_or_default();
                         let time = time + Duration::from_secs(10);
-                        let _ = self.client.rewind(time);
+                        let _ = conn.rewind(time);
                     }
 
                     // rEpeat
                     b'e' => {
-                        let state = self.client.status().unwrap_or_default().repeat;
-                        let _ = self.client.repeat(!state);
+                        let state = conn.status().unwrap_or_default().repeat;
+                        let _ = conn.repeat(!state);
                     }
                     // Random
                     b'r' => {
-                        let state = self.client.status().unwrap_or_default().random;
-                        let _ = self.client.random(!state);
+                        let state = conn.status().unwrap_or_default().random;
+                        let _ = conn.random(!state);
                     }
                     // Single
                     b's' => {
-                        let state = self.client.status().unwrap_or_default().single;
-                        let _ = self.client.single(!state);
+                        let state = conn.status().unwrap_or_default().single;
+                        let _ = conn.single(!state);
                     }
                     // Consume
                     b'c' => {
-                        let state = self.client.status().unwrap_or_default().consume;
-                        let _ = self.client.consume(!state);
+                        let state = conn.status().unwrap_or_default().consume;
+                        let _ = conn.consume(!state);
                     }
 
                     // Shuffle (R)
                     b'S' | b'R' => {
-                        let _ = self.client.shuffle(..);
+                        let _ = conn.shuffle(..);
                     }
 
                     // stop (X)
                     b'X' => {
-                        let _ = self.client.stop();
+                        let _ = conn.stop();
                     }
 
                     // default
