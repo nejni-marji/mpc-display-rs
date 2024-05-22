@@ -50,6 +50,7 @@ pub mod music {
     struct MusicData {
         // non-music data
         format: Vec<String>,
+        ditto_tags: Vec<bool>,
         // everything that can potentially be missing is an Option type.
         // the exception to this is queue_total, which theoretically would be 0
         // when there is no value, but i've chosen to force it into an Option
@@ -282,7 +283,44 @@ pub mod music {
             // dprintln!("[update_playlist()]\n[{queue:?}]");
             drop(conn);
 
+            // check for repeated values per tag
+            let mut ditto_tags = Vec::new();
+            for tag in self.format.clone() {
+                // skip title, that's silly
+                if tag == "title" {
+                    ditto_tags.push(false);
+                    continue;
+                }
+                // check for equality, if anything is ever different then
+                // immediately stop searching
+                let mut is_ditto = true;
+                // temp value for first song
+                let temp1 = queue.first().map_or_else(
+                    || Some(String::new()),
+                    |s| Self::get_metadata(s, &tag),
+                );
+                for song in &queue {
+                    // temp value for other songs
+                    let temp2 = Self::get_metadata(song, &tag);
+                    // if different, break from song loop
+                    if temp1 != temp2 {
+                        is_ditto = false;
+                        break;
+                    }
+                }
+                dprintln!("[update_playlist()]\n[is {tag} ditto? {is_ditto}]");
+                ditto_tags.push(is_ditto);
+            }
+
+            self.ditto_tags = ditto_tags;
             self.queue = queue;
+
+            // if these are not the same length, we fucked up
+            assert_eq!(
+                self.format.clone().len(),
+                self.ditto_tags.clone().len(),
+            );
+
         }
 
         fn print_header(&self) -> String {
@@ -488,9 +526,12 @@ pub mod music {
 
             // get song text
             let mut tags = Vec::new();
-            for i in self.format.clone() {
-                let i = i.as_str();
-                tags.push(Self::get_metadata(song, i).unwrap());
+            for (i, v) in self.format.clone().into_iter().enumerate() {
+                if *self.ditto_tags.get(i).expect("assert that these are the same length") {
+                    continue;
+                }
+                let v = v.as_str();
+                tags.push(Self::get_metadata(song, v).unwrap_or_else(|| UNKNOWN.to_string()));
             }
 
             let songtext = tags.join(" * ");
@@ -586,11 +627,9 @@ pub mod music {
         }
 
         fn get_metadata(song: &Song, tag: &str) -> Option<String> {
-            let metadata = match tag {
-                "title" => song.title
-                    .clone(),
-                "artist" => song.artist
-                    .clone(),
+            match tag {
+                "title" => song.title.clone(),
+                "artist" => song.artist.clone(),
                 _ => {
                     let mut value = None;
                     for (k, v) in &song.tags {
@@ -600,8 +639,7 @@ pub mod music {
                     }
                     value.cloned()
                 }
-            };
-            metadata
+            }
         }
 
     }
@@ -690,7 +728,8 @@ pub mod input {
                     }
                     // space for pause/play
                     b' ' => {
-                        match conn.status().unwrap_or_default().state {
+                        let state = conn.status().unwrap_or_default().state;
+                        match state {
                             State::Play => {
                                 let _ = conn.pause(true);
                             }
@@ -791,7 +830,7 @@ pub mod input {
         let ch = getch_raw();
 
         // reset the stdin to original termios data
-        tcsetattr(stdin, TCSANOW, & backup_termios).unwrap();
+        tcsetattr(stdin, TCSANOW, & backup_termios).expect("can't set terminal attributes");
         ch
     }
 
