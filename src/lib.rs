@@ -87,8 +87,6 @@ pub mod music {
         }
 
         pub fn init(&mut self) {
-            dprintln!("{:?}", self.client.lock().unwrap().queue());
-            return;
             let data = &mut self.data;
             data.format.clone_from(&self.format);
             data.update_status(&self.client);
@@ -285,77 +283,6 @@ pub mod music {
             drop(conn);
 
             self.queue = queue;
-        }
-
-        fn increment_time(&mut self, n: u64) {
-            self.time_curr = self.time_curr.map(|t| t + Duration::from_secs(n));
-        }
-
-        // TODO: optimize this by caching the result on a per-album basis
-        fn get_album_nums(client: &Mutex<Client>, album: Option<String>, song: Song) -> Option<(u32, u32)> {
-            // build query
-            let mut query = Query::new();
-            query.and(Term::Tag(Borrowed("Album")), album?);
-            let window = Window::from((0,u32::from(u16::MAX)));
-            // lock client and search
-            let mut conn = client.lock()
-                .expect("unable to lock client");
-            let search = conn.search(&query, window);
-            drop(conn);
-            // parse search
-            match search {
-                Err(_) => { None },
-                Ok(search) => {
-                    // dprintln!("{search:?}");
-                    let mut track = None;
-                    for (k, v) in song.tags {
-                        if k == "Track" {
-                            track = Some(v);
-                        }
-                    }
-                    // return numeric value
-                    track?.parse().map_or( None, |track|
-                        Some((track,
-                            u32::try_from(search.len())
-                            .expect("can't cast search length")
-                        ))
-                    )
-                }
-            }
-        }
-
-        fn get_pretty_time(dur: Option<Duration>) -> Option<String> {
-            let n = dur?.as_secs();
-            let (min, sec) = (n / 60, n % 60);
-            Some(format!("{min}:{sec:0>2}"))
-        }
-
-        fn get_ersc(&self) -> String {
-            let mut ersc = String::new();
-            let base = ['e', 'r', 's', 'c'];
-            let ersc_opts = self.ersc_opts
-                .clone();
-            for (i, v) in base.iter().enumerate() {
-                ersc.push(
-                    // this unwrap_or is... middling at best, i think
-                    if *ersc_opts.get(i).unwrap_or(&false) {
-                        v.to_ascii_uppercase()
-                    } else {
-                        *v
-                    }
-                );
-            }
-            ersc
-        }
-
-        fn get_metadata(song: &Song, tag: &str) -> Option<String> {
-            let mut value = None;
-            for (k, v) in &song.tags {
-                if k.to_ascii_lowercase() == tag.to_ascii_lowercase() {
-                    value = Some(v);
-                }
-            }
-            value.cloned()
         }
 
         fn print_header(&self) -> String {
@@ -563,14 +490,7 @@ pub mod music {
             let mut tags = Vec::new();
             for i in self.format.clone() {
                 let i = i.as_str();
-                tags.push(match i {
-                    "title" => song.title
-                        .clone().unwrap_or_else(|| UNKNOWN.to_string()),
-                    "artist" => song.artist
-                        .clone().unwrap_or_else(|| UNKNOWN.to_string()),
-                    _ => Self::get_metadata(song, i)
-                        .unwrap_or_else(|| UNKNOWN.to_string()),
-                });
+                tags.push(Self::get_metadata(song, i).unwrap());
             }
 
             let songtext = tags.join(" * ");
@@ -603,6 +523,87 @@ pub mod music {
                 (false, false) => { head.try_into().expect("this should be impossible. i think?") }
             }
         }
+
+        fn increment_time(&mut self, n: u64) {
+            self.time_curr = self.time_curr.map(|t| t + Duration::from_secs(n));
+        }
+
+        // TODO: optimize this by caching the result on a per-album basis
+        fn get_album_nums(client: &Mutex<Client>, album: Option<String>, song: Song) -> Option<(u32, u32)> {
+            // build query
+            let mut query = Query::new();
+            query.and(Term::Tag(Borrowed("Album")), album?);
+            let window = Window::from((0,u32::from(u16::MAX)));
+            // lock client and search
+            let mut conn = client.lock()
+                .expect("unable to lock client");
+            let search = conn.search(&query, window);
+            drop(conn);
+            // parse search
+            match search {
+                Err(_) => { None },
+                Ok(search) => {
+                    // dprintln!("{search:?}");
+                    let mut track = None;
+                    for (k, v) in song.tags {
+                        if k == "Track" {
+                            track = Some(v);
+                        }
+                    }
+                    // return numeric value
+                    track?.parse().map_or( None, |track|
+                        Some((track,
+                            u32::try_from(search.len())
+                            .expect("can't cast search length")
+                        ))
+                    )
+                }
+            }
+        }
+
+        fn get_pretty_time(dur: Option<Duration>) -> Option<String> {
+            let n = dur?.as_secs();
+            let (min, sec) = (n / 60, n % 60);
+            Some(format!("{min}:{sec:0>2}"))
+        }
+
+        fn get_ersc(&self) -> String {
+            let mut ersc = String::new();
+            let base = ['e', 'r', 's', 'c'];
+            let ersc_opts = self.ersc_opts
+                .clone();
+            for (i, v) in base.iter().enumerate() {
+                ersc.push(
+                    // this unwrap_or is... middling at best, i think
+                    if *ersc_opts.get(i).unwrap_or(&false) {
+                        v.to_ascii_uppercase()
+                    } else {
+                        *v
+                    }
+                );
+            }
+            ersc
+        }
+
+        fn get_metadata(song: &Song, tag: &str) -> Option<String> {
+            let metadata = match tag {
+                "title" => song.title
+                    .clone(),
+                "artist" => song.artist
+                    .clone(),
+                _ => {
+                    let mut value = None;
+                    for (k, v) in &song.tags {
+                        if k.to_ascii_lowercase() == tag.to_ascii_lowercase() {
+                            value = Some(v);
+                        }
+                    }
+                    value.cloned()
+                }
+            };
+            metadata
+        }
+
     }
 
     impl fmt::Display for MusicData {
