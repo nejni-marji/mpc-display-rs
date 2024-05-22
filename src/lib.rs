@@ -389,9 +389,10 @@ pub mod music {
                 _ =>UNKNOWN.to_string()
             };
 
+            // TODO: handle ratings that are below 0...
             let rating = self.rating
                 .clone().map_or_else(
-                    String::new,
+                    || String::from("?????"),
                     |r| {
                         const STARS: [&str; 3] = ["<3", "< ", " ."];
 
@@ -746,7 +747,7 @@ pub mod input {
                 let ch = getch().unwrap_or_default();
                 let mut conn = self.client.lock().expect("should be able to get command connection");
                 match ch {
-                    // Quit
+                    // quit
                     b'q' => {
                         let _ = conn.subscribe(
                             mpd::message::Channel::new("quit")
@@ -767,18 +768,18 @@ pub mod input {
                         }
                     }
 
-                    // Prev
+                    // prev
                     b'p' | b'k' => { let _ = conn.prev(); }
-                    // Next
+                    // next
                     b'n' | b'j' => { let _ = conn.next(); }
-                    // volume Up
-                    b'=' | b'+' | b')' => {
+                    // volume up
+                    b'=' | b'+' | b'0' | b')' => {
                         let vol = conn.status().unwrap_or_default().volume;
                         let vol = std::cmp::min(100, vol+5);
                         let _ = conn.volume(vol);
                     }
-                    // volume Down
-                    b'-' | b'_' | b'(' => {
+                    // volume down
+                    b'-' | b'_' | b'9' | b'(' => {
                         let vol = conn.status().unwrap_or_default().volume;
                         // volume is i8, so you can do this
                         let vol = std::cmp::max(0, vol-5);
@@ -808,33 +809,33 @@ pub mod input {
                         let _ = conn.rewind(time);
                     }
 
-                    // rEpeat
-                    b'e' => {
+                    // repeat
+                    b'E' => {
                         let state = conn.status().unwrap_or_default().repeat;
                         let _ = conn.repeat(!state);
                     }
-                    // Random
-                    b'r' => {
+                    // random
+                    b'R' => {
                         let state = conn.status().unwrap_or_default().random;
                         let _ = conn.random(!state);
                     }
-                    // Single
-                    b's' => {
+                    // single
+                    b'S' => {
                         let state = conn.status().unwrap_or_default().single;
                         let _ = conn.single(!state);
                     }
-                    // Consume
-                    b'c' => {
+                    // consume
+                    b'C' => {
                         let state = conn.status().unwrap_or_default().consume;
                         let _ = conn.consume(!state);
                     }
 
-                    // Shuffle (R)
-                    b'S' | b'R' => {
+                    // shuffle
+                    b'?' => {
                         let _ = conn.shuffle(..);
                     }
 
-                    // stop (X)
+                    // stop
                     b'X' => {
                         let _ = conn.stop();
                     }
