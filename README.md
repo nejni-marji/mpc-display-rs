@@ -1,7 +1,11 @@
 # mpc-display-rs
-This is a program that displays the current state of an MPD server.
+This is a client for Music Player Daemon.
 
-`mpc-display-rs` is a companion program for the standard client, `mpc`, and does not offer any control whatsoever. It handles text wrapping and is flicker-free, and tries to keep the current track in the center of the screen.
+`mpc-display-rs` was originally a companion program for `mpc`, but now supports keyboard input to control playback! How exciting... it's finally a real MPD client!
+
+## Controls
+
+Which keys do what are still up in the air, so... have fun!
 
 ## Usage
 

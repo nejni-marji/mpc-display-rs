@@ -1,4 +1,5 @@
 // vim: fdl=1
+
 #[allow(clippy::missing_panics_doc)]
 #[allow(clippy::cast_possible_wrap)]
 pub mod music {
@@ -211,8 +212,7 @@ pub mod music {
         }
 
         pub fn display(&self) {
-            println!("display!");
-            print!("\x1b[2J{self}\x1b[H");
+            print!("\x1b[?25l\x1b[2J{self}\x1b[H");
             io::stdout().flush().expect("should be able to flush buffer");
         }
 
@@ -494,7 +494,7 @@ pub mod music {
             let queue_size: u32 = queue.len().try_into().expect("nothing should be that big");
             let mut song_pos: Option<u32> = None;
             for (i, v) in queue.iter().enumerate() {
-                if ! v.starts_with(' ') {
+                if v.starts_with('>') || v.starts_with('\x1b') {
                     song_pos = Some(i.try_into().expect("nothing should be that big"));
                 }
             }
@@ -630,4 +630,132 @@ pub mod music {
                 )
         }
     }
+}
+
+pub mod input {
+    use std::io;
+    use std::io::Read;
+    use std::io::Write;
+    use termios::{Termios, TCSANOW, ECHO, ICANON, tcsetattr};
+    use mpd::{
+        Client,
+        State
+    };
+
+    pub struct KeyHandler {
+        client: Client,
+    }
+
+    impl KeyHandler {
+        pub fn new(address: String) -> Self {
+            Self {
+                client: Client::connect(address)
+                    .expect("should have client")
+            }
+        }
+
+        pub fn init(&mut self) {
+            loop {
+                let ch = getch();
+                match ch {
+                    // Quit
+                    b'q' => {
+                        let _ = self.client.subscribe(
+                            mpd::message::Channel::new("quit").unwrap()
+                        );
+                        break;
+                    }
+                    // space for pause/play
+                    b' ' => {
+                        match self.client.status().unwrap().state {
+                            State::Play => {
+                                let _ = self.client.pause(true);
+                            }
+                            State::Pause | State::Stop => {
+                                let _ = self.client.play();
+                            }
+                        }
+                    }
+
+                    // Prev (vim K)
+                    b'p' | b'k' => { let _ = self.client.prev(); }
+                    // Next (vim J)
+                    b'n' | b'j' => { let _ = self.client.next(); }
+                    // volume Up (vim L)
+                    b'=' | b'+' | b')' => {
+                        let vol = self.client.status().unwrap().volume;
+                        let vol = std::cmp::min(100, vol+5);
+                        let _ = self.client.volume(vol);
+                    }
+                    // volume Down (vim H)
+                    b'-' | b'_' | b'(' => {
+                        let vol = self.client.status().unwrap().volume;
+                        let vol = if vol < 5 {
+                            0
+                        } else {
+                            vol-5
+                        };
+                        let _ = self.client.volume(vol);
+                    }
+
+                    // rEpeat
+                    b'e' => {
+                        let state = self.client.status().unwrap().repeat;
+                        let _ = self.client.repeat(!state);
+                    }
+                    // Random
+                    b'r' => {
+                        let state = self.client.status().unwrap().random;
+                        let _ = self.client.random(!state);
+                    }
+                    // Single
+                    b's' => {
+                        let state = self.client.status().unwrap().single;
+                        let _ = self.client.single(!state);
+                    }
+                    // Consume
+                    b'c' => {
+                        let state = self.client.status().unwrap().consume;
+                        let _ = self.client.consume(!state);
+                    }
+
+                    // Shuffle (R)
+                    b'S' | b'R' => {
+                        let _ = self.client.shuffle(..);
+                    }
+
+                    // stop (X)
+                    b'X' => {
+                        let _ = self.client.stop();
+                    }
+
+                    // default
+                    _ => {
+                        println!("getch(): {ch}");
+                    }
+                }
+            }
+        }
+    }
+
+    fn getch() -> u8 {
+        let stdin = 0; // couldn't get std::os::unix::io::FromRawFd to work 
+                       // on /dev/stdin or /dev/tty
+        let termios = Termios::from_fd(stdin).unwrap();
+        let mut new_termios = termios.clone();  // make a mutable copy of termios 
+                                                // that we will modify
+        new_termios.c_lflag &= !(ICANON | ECHO); // no echo and canonical mode
+        tcsetattr(stdin, TCSANOW, &mut new_termios).unwrap();
+        let stdout = io::stdout();
+        let mut reader = io::stdin();
+        let mut buffer = [0;1];  // read exactly one byte
+        //print!("Hit a key! ");
+        stdout.lock().flush().unwrap();
+        reader.read_exact(&mut buffer).unwrap();
+        //println!("You have hit: {:?}", buffer);
+        tcsetattr(stdin, TCSANOW, & termios).unwrap();  // reset the stdin to 
+                                                        // original termios data
+        buffer[0]
+    }
+
 }

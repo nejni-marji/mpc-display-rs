@@ -1,6 +1,8 @@
 use std::string::ToString;
+use std::thread;
 use clap::Parser;
 use mpc_display_rs::music::Player;
+use mpc_display_rs::input::KeyHandler;
 
 fn main() {
     let args = Args::parse();
@@ -20,14 +22,13 @@ fn main() {
     };
 
     // run player
-    let mut player = Player::new(address, format);
+    let mut player = Player::new(address.clone(), format);
     player.init();
-    #[cfg(not(debug_assertions))]
-    print!("\x1b[?25l");
-    // TODO: run display() in a thread, catch ^C and use it to run: Client.subscribe(mpd::message::Channel::new("quit").unwrap())
-    player.display();
-    #[cfg(not(debug_assertions))]
-    print!("\x1b[?25h");
+    thread::spawn(move || { player.display(); });
+
+    // initialize input
+    let mut parser = KeyHandler::new(address.clone());
+    parser.init()
 }
 
 /// Displays the current state of an MPD server.

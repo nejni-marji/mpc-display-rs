@@ -16,4 +16,5 @@ clap = { version = "4.5.4", features = ["derive"] }
 debug_print = "1.0.0"
 mpd = "0.1.0"
 terminal_size = "0.3.0"
+termios = "0.3.3"
 textwrap = "0.16.1"
