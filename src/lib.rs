@@ -850,17 +850,17 @@ pub mod input {
                 'x' => {
                     let crossfade = conn.status().unwrap_or_default()
                         .crossfade.unwrap_or_default();
-                    let sec = Duration::from_secs(1);
-                    let _ = conn.crossfade(crossfade+sec);
+                    let crossfade = crossfade + Duration::from_secs(1);
+                    let _ = conn.crossfade(crossfade);
                 }
 
                 // crossfade down
                 'X' => {
                     let crossfade = conn.status().unwrap_or_default()
                         .crossfade.unwrap_or_default();
-                    let sec = Duration::from_secs(1);
                     if crossfade.as_secs() != 0 {
-                        let _ = conn.crossfade(crossfade-sec);
+                        let crossfade = crossfade + Duration::from_secs(1);
+                        let _ = conn.crossfade(crossfade);
                     }
                 }
 
