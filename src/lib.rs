@@ -842,12 +842,30 @@ pub mod input {
                 }
 
                 // shuffle
-                '?' => {
+                'F' => {
                     let _ = conn.shuffle(..);
                 }
 
-                // stop
+                // crossfade up
+                'x' => {
+                    let crossfade = conn.status().unwrap_or_default()
+                        .crossfade.unwrap_or_default();
+                    let sec = Duration::from_secs(1);
+                    let _ = conn.crossfade(crossfade+sec);
+                }
+
+                // crossfade down
                 'X' => {
+                    let crossfade = conn.status().unwrap_or_default()
+                        .crossfade.unwrap_or_default();
+                    let sec = Duration::from_secs(1);
+                    if crossfade.as_secs() != 0 {
+                        let _ = conn.crossfade(crossfade-sec);
+                    }
+                }
+
+                // stop
+                '\x00' => {
                     let _ = conn.stop();
                 }
 
