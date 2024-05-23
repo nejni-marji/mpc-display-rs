@@ -754,113 +754,117 @@ pub mod input {
 
             loop {
                 let ch = getch().unwrap_or_default();
-                let mut conn = self.client.lock().expect("should be able to get command connection");
-                // TODO: add helptext in-program
-                match ch {
-                    // quit
-                    b'q' => {
-                        let _ = conn.subscribe(
-                            mpd::message::Channel::new(
-                                format!("quit_{}",
+                self.handle_key(ch);
+            }
+       }
+
+        fn handle_key(&self, ch: u8) {
+            let mut conn = self.client.lock().expect("should be able to get command connection");
+            // TODO: add helptext in-program
+            match ch {
+                // quit
+                b'q' => {
+                    let _ = conn.subscribe(
+                        mpd::message::Channel::new(
+                            format!("quit_{}",
                                     self.uuid.simple()).as_str()
-                                )
-                                .expect("should be able to make quit channel")
+                            )
+                        .expect("should be able to make quit channel")
                         );
-                        break;
-                    }
-                    // space for pause/play
-                    b' ' => {
-                        let state = conn.status().unwrap_or_default().state;
-                        match state {
-                            State::Play => {
-                                let _ = conn.pause(true);
-                            }
-                            State::Pause | State::Stop => {
-                                let _ = conn.play();
-                            }
+                    return;
+                }
+                // space for pause/play
+                b' ' => {
+                    let state = conn.status().unwrap_or_default().state;
+                    match state {
+                        State::Play => {
+                            let _ = conn.pause(true);
+                        }
+                        State::Pause | State::Stop => {
+                            let _ = conn.play();
                         }
                     }
-
-                    // prev
-                    b'p' | b'k' => { let _ = conn.prev(); }
-                    // next
-                    b'n' | b'j' => { let _ = conn.next(); }
-                    // volume up
-                    b'=' | b'+' | b'0' | b')' => {
-                        let vol = conn.status().unwrap_or_default().volume;
-                        let vol = std::cmp::min(100, vol+5);
-                        let _ = conn.volume(vol);
-                    }
-                    // volume down
-                    b'-' | b'_' | b'9' | b'(' => {
-                        let vol = conn.status().unwrap_or_default().volume;
-                        // volume is i8, so you can do this
-                        let vol = std::cmp::max(0, vol-5);
-                        let _ = conn.volume(vol);
-                    }
-
-                    // seek backwards
-                    b'h' => {
-                        let time = conn.status()
-                            .unwrap_or_default()
-                            .elapsed
-                            .unwrap_or_default();
-                        let time = if time.as_secs() <= 10 {
-                            Duration::from_secs(0)
-                        } else {
-                            time - Duration::from_secs(10)
-                        };
-                        let _ = conn.rewind(time);
-                    }
-                    // seek forwards
-                    b'l' => {
-                        let time = conn.status()
-                            .unwrap_or_default()
-                            .elapsed
-                            .unwrap_or_default();
-                        let time = time + Duration::from_secs(10);
-                        let _ = conn.rewind(time);
-                    }
-
-                    // repeat
-                    b'E' => {
-                        let state = conn.status().unwrap_or_default().repeat;
-                        let _ = conn.repeat(!state);
-                    }
-                    // random
-                    b'R' => {
-                        let state = conn.status().unwrap_or_default().random;
-                        let _ = conn.random(!state);
-                    }
-                    // single
-                    b'S' => {
-                        let state = conn.status().unwrap_or_default().single;
-                        let _ = conn.single(!state);
-                    }
-                    // consume
-                    b'C' => {
-                        let state = conn.status().unwrap_or_default().consume;
-                        let _ = conn.consume(!state);
-                    }
-
-                    // shuffle
-                    b'?' => {
-                        let _ = conn.shuffle(..);
-                    }
-
-                    // stop
-                    b'X' => {
-                        let _ = conn.stop();
-                    }
-
-                    // default
-                    _ => {
-                        #[cfg(debug_assertions)]
-                        println!("getch(): {ch}");
-                    }
                 }
-                drop(conn);
+
+                // prev
+                b'p' | b'k' => { let _ = conn.prev(); }
+                // next
+                b'n' | b'j' => { let _ = conn.next(); }
+                // volume up
+                b'=' | b'+' | b'0' | b')' => {
+                    let vol = conn.status().unwrap_or_default().volume;
+                    let vol = std::cmp::min(100, vol+5);
+                    let _ = conn.volume(vol);
+                }
+                // volume down
+                b'-' | b'_' | b'9' | b'(' => {
+                    let vol = conn.status().unwrap_or_default().volume;
+                    // volume is i8, so you can do this
+                    let vol = std::cmp::max(0, vol-5);
+                    let _ = conn.volume(vol);
+                }
+
+                // seek backwards
+                b'h' => {
+                    let time = conn.status()
+                        .unwrap_or_default()
+                        .elapsed
+                        .unwrap_or_default();
+                    let time = if time.as_secs() <= 10 {
+                        Duration::from_secs(0)
+                    } else {
+                        time - Duration::from_secs(10)
+                    };
+                    let _ = conn.rewind(time);
+                }
+                // seek forwards
+                b'l' => {
+                    let time = conn.status()
+                        .unwrap_or_default()
+                        .elapsed
+                        .unwrap_or_default();
+                    let time = time + Duration::from_secs(10);
+                    let _ = conn.rewind(time);
+                }
+
+                // repeat
+                b'E' => {
+                    let state = conn.status().unwrap_or_default().repeat;
+                    let _ = conn.repeat(!state);
+                }
+                // random
+                b'R' => {
+                    let state = conn.status().unwrap_or_default().random;
+                    let _ = conn.random(!state);
+                }
+                // single
+                b'S' => {
+                    let state = conn.status().unwrap_or_default().single;
+                    let _ = conn.single(!state);
+                }
+                // consume
+                b'C' => {
+                    let state = conn.status().unwrap_or_default().consume;
+                    let _ = conn.consume(!state);
+                }
+
+                // shuffle
+                b'?' => {
+                    let _ = conn.shuffle(..);
+                }
+
+                // stop
+                b'X' => {
+                    let _ = conn.stop();
+                }
+
+                // default
+                _ => {
+                    #[cfg(debug_assertions)]
+                    println!("getch(): {ch}");
+                }
             }
+            drop(conn);
         }
     }
 
