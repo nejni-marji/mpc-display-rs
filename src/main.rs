@@ -3,6 +3,7 @@ use std::thread;
 use clap::Parser;
 use mpc_display_rs::music::Player;
 use mpc_display_rs::input::KeyHandler;
+use uuid::Uuid;
 
 fn main() {
     let args = Args::parse();
@@ -21,13 +22,16 @@ fn main() {
         .collect()
     };
 
+    // generate UUID for proper quit handling
+    let uuid = Uuid::new_v4();
+
     // run player
-    let mut player = Player::new(address.clone(), format);
+    let mut player = Player::new(address.clone(), format, uuid);
     player.init();
     thread::spawn(move || { player.display(); });
 
     // initialize input
-    let mut parser = KeyHandler::new(address);
+    let mut parser = KeyHandler::new(address, uuid);
     parser.init();
     println!("\x1b[?25h");
 }

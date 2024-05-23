@@ -13,6 +13,7 @@ pub mod music {
     use mpd::{Client, Idle, Query, search::Window, Song, song::QueuePlace, State, Subsystem, Term};
     use terminal_size::terminal_size;
     use textwrap;
+    use uuid::Uuid;
 
     const UNKNOWN: &str = "?";
 
@@ -31,6 +32,7 @@ pub mod music {
         data: MusicData,
         format: Vec<String>,
         quit: bool,
+        uuid: Uuid,
     }
 
     #[derive(Debug,Default,Clone)]
@@ -63,7 +65,7 @@ pub mod music {
     }
 
     impl Player {
-        #[must_use] pub fn new(address: String, format: Vec<String>) -> Self {
+        #[must_use] pub fn new(address: String, format: Vec<String>, uuid: Uuid) -> Self {
             Self {
                 //address: address.clone(),
                 client: Mutex::new(
@@ -73,6 +75,7 @@ pub mod music {
                 data: MusicData::new(),
                 format,
                 quit: false,
+                uuid,
             }
         }
 
@@ -188,7 +191,10 @@ pub mod music {
 
                         // check for quit channel
                         for i in &channels {
-                            if *i == mpd::message::Channel::new("quit")
+                            if *i == mpd::message::Channel::new(
+                                format!("quit_{}",
+                                    self.uuid.simple()).as_str()
+                                )
                                 .expect("should be able to make quit channel") {
                                 self.quit = true;
                             }
@@ -716,16 +722,19 @@ pub mod input {
         Client,
         State
     };
+    use uuid::Uuid;
 
     pub struct KeyHandler {
         client: Arc<Mutex<Client>>,
+        uuid: Uuid,
     }
 
     impl KeyHandler {
-        #[must_use] pub fn new(address: String) -> Self {
+        #[must_use] pub fn new(address: String, uuid: Uuid) -> Self {
             Self {
                 client: Arc::new(Mutex::new(Client::connect(address)
-                    .expect("unable to lock client")))
+                    .expect("unable to lock client"))),
+                uuid,
             }
         }
 
@@ -746,11 +755,15 @@ pub mod input {
             loop {
                 let ch = getch().unwrap_or_default();
                 let mut conn = self.client.lock().expect("should be able to get command connection");
+                // TODO: add helptext in-program
                 match ch {
                     // quit
                     b'q' => {
                         let _ = conn.subscribe(
-                            mpd::message::Channel::new("quit")
+                            mpd::message::Channel::new(
+                                format!("quit_{}",
+                                    self.uuid.simple()).as_str()
+                                )
                                 .expect("should be able to make quit channel")
                         );
                         break;
