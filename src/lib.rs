@@ -754,11 +754,15 @@ pub mod input {
 
             loop {
                 let ch = getch().unwrap_or_default();
-                self.handle_key(ch);
+                // returns "quit"
+                if self.handle_key(ch) {
+                    break
+                }
             }
        }
 
-        fn handle_key(&self, ch: char) {
+        /// Returns a "quit" parameter.
+        fn handle_key(&self, ch: char) -> bool {
             let mut conn = self.client.lock().expect("should be able to get command connection");
             // TODO: add helptext in-program
             match ch {
@@ -771,8 +775,9 @@ pub mod input {
                             )
                         .expect("should be able to make quit channel")
                         );
-                    return;
+                    return true;
                 }
+
                 // space for pause/play
                 ' ' => {
                     let state = conn.status().unwrap_or_default().state;
@@ -865,6 +870,7 @@ pub mod input {
                 }
             }
             drop(conn);
+            false
         }
     }
 
