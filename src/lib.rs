@@ -468,7 +468,6 @@ pub mod music {
                 queue_size,
                 song_pos,
                 );
-            // tail = min(plSize, head+height)
             let tail = std::cmp::min(
                 queue_size,
                 head + height-header_height,
@@ -479,6 +478,7 @@ pub mod music {
 
             dprintln!("head: {head}");
             dprintln!("tail: {tail}");
+            dprintln!("len: {}", queue.len());
 
             // first cropped queue
             let queue = queue.get(head as usize..tail as usize)
@@ -493,8 +493,8 @@ pub mod music {
                 );
             let queue = textwrap::wrap(&queue, opt);
 
-            // re-crop the queue
-            // do not use self.queue.
+            // CODE REUSE
+            // get some new variables
             let queue_size: u32 = queue.len().try_into().expect("nothing should be that big");
             let mut song_pos: Option<u32> = None;
             for (i, v) in queue.iter().enumerate() {
@@ -510,7 +510,6 @@ pub mod music {
                 queue_size,
                 song_pos,
                 );
-            // tail = min(plSize, head+height)
             let tail = std::cmp::min(
                 queue_size,
                 head + height-header_height,
@@ -524,9 +523,9 @@ pub mod music {
             dprintln!("len: {}", queue.len());
 
             // second cropped queue
-            // TODO: code reuse
             let queue = queue.get(head as usize..tail as usize)
                 .unwrap_or_default();
+            // END CODE REUSE
 
             // create padding to add later
             let len = queue.len().try_into().unwrap_or(0);
