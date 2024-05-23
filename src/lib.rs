@@ -402,26 +402,31 @@ pub mod music {
                 _ =>UNKNOWN.to_string()
             };
 
-            // TODO: handle ratings that are below 0...
+            #[inline]
+            fn fmt_r(r: String) -> String { format!("rating: {r}")
+            }
             let rating = self.rating
                 .clone().map_or_else(
-                    || String::from("?????"),
+                    || "?????".to_string(),
                     |r| {
                         const STARS: [&str; 3] = ["<3", "< ", " ."];
 
-                        let n = r.parse().unwrap_or(0);
-                        let (a, b) = if n >= 10 {
-                            (5, 0)
-                        } else {
-                            (n/2, n%2)
-                        };
-                        let c = std::cmp::max(0, 5-a-b);
+                        match r.parse::<usize>() {
+                            Err(_) => fmt_r(r),
+                            Ok(n) => {
+                                if n > 10 {
+                                    return fmt_r(r);
+                                }
+                                let (a, b) = (n/2, n%2);
+                                let c = std::cmp::max(0, 5-a-b);
 
-                        format!("{}{}{}",
-                            STARS[0].repeat(a),
-                            STARS[1].repeat(b),
-                            STARS[2].repeat(c),
-                        )
+                                format!("{}{}{}",
+                                    STARS[0].repeat(a),
+                                    STARS[1].repeat(b),
+                                    STARS[2].repeat(c),
+                                )
+                            }
+                        }
                     });
 
             let ersc_str = self.get_ersc();
