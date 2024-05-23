@@ -5,7 +5,21 @@ This is a client for Music Player Daemon.
 
 ## Controls
 
-Which keys do what are still up in the air, so... have fun!
+* `space` - pause/play
+
+* `M` - stops playback
+
+* `p`/`k`, `n`/`j` - prev/next track
+
+* `=`/`+`/`0`/`)`, `-`/`_`/`9`/`(` - volume up/down
+
+* `h`/`l` - seek back/ahead
+
+* `E`/`R`/`S`/`C` - repeat, random, single, consume
+
+* `F` - shuffle (reorders queue in-place)
+
+* `x`/`X` - crossfade up/down
 
 ## Usage
 
@@ -20,6 +34,8 @@ Options:
   -h, --help             Print help
   -V, --version          Print version
 ```
+
+`mpc-display-rs` respects `MPD_HOST` and `MPD_PORT`.
 
 ## Screenshots
 <!--![](images/demo1.png "demo 1")-->

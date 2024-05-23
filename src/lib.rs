@@ -799,10 +799,8 @@ pub mod input {
 
                 // seek backwards
                 'h' => {
-                    let time = conn.status()
-                        .unwrap_or_default()
-                        .elapsed
-                        .unwrap_or_default();
+                    let time = conn.status().unwrap_or_default()
+                        .elapsed.unwrap_or_default();
                     let time = if time.as_secs() <= 10 {
                         Duration::from_secs(0)
                     } else {
@@ -812,10 +810,8 @@ pub mod input {
                 }
                 // seek forwards
                 'l' => {
-                    let time = conn.status()
-                        .unwrap_or_default()
-                        .elapsed
-                        .unwrap_or_default();
+                    let time = conn.status().unwrap_or_default()
+                        .elapsed.unwrap_or_default();
                     let time = time + Duration::from_secs(10);
                     let _ = conn.rewind(time);
                 }
@@ -842,9 +838,7 @@ pub mod input {
                 }
 
                 // shuffle
-                'F' => {
-                    let _ = conn.shuffle(..);
-                }
+                'F' => { let _ = conn.shuffle(..); }
 
                 // crossfade up
                 'x' => {
@@ -865,9 +859,7 @@ pub mod input {
                 }
 
                 // stop
-                '\x00' => {
-                    let _ = conn.stop();
-                }
+                'M' => { let _ = conn.stop(); }
 
                 // default
                 _ => {
