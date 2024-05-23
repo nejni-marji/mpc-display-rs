@@ -1,3 +1,4 @@
+use std::env;
 use std::string::ToString;
 use std::thread;
 use clap::Parser;
@@ -5,13 +6,30 @@ use mpc_display_rs::music::Player;
 use mpc_display_rs::input::KeyHandler;
 use uuid::Uuid;
 
+const DEFAULT_HOST: &str = "127.0.0.1";
+const DEFAULT_PORT: u16 = 6600;
+
 fn main() {
     let args = Args::parse();
     #[cfg(debug_assertions)]
     println!("{args:?}");
 
     // get argument vars
-    let address = format!("{}:{}", args.host, args.port);
+    let host = args.host.map_or_else(
+        || env::var("MPD_HOST").unwrap_or_else(
+            |_| DEFAULT_HOST.to_string()
+        ),
+        |h| h,
+    );
+    let port = args.port.map_or_else(
+        || env::var("MPD_PORT").map_or(
+            DEFAULT_PORT,
+            |p| p.parse()
+            .expect("invalid value for MPD_PORT"),
+        ),
+        |p| p,
+    );
+    let address = format!("{host}:{port}");
     let format: Vec<_> = if args.title {
         vec!["title".to_string()]
     } else {
@@ -42,14 +60,12 @@ fn main() {
 struct Args {
 
     /// Connect to server at address <HOST>
-    #[arg(short = 'H', long,
-          default_value_t = String::from("127.0.0.1"))]
-    host: String,
+    #[arg(short = 'H', long)]
+    host: Option<String>,
 
     /// Connect to server on port <PORT>
-    #[arg(short = 'P', long,
-          default_value_t = 6600)]
-    port: u16,
+    #[arg(short = 'P', long)]
+    port: Option<u16>,
 
     /// Comma-separated list of song metadata to display
     // TODO: is there a way to use comma-separated lists with derive?
