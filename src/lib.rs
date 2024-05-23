@@ -195,7 +195,7 @@ pub mod music {
                                 format!("quit_{}",
                                     self.uuid.simple()).as_str()
                                 )
-                                .expect("should be able to make quit channel") {
+                                .expect("unable to make quit channel") {
                                 self.quit = true;
                             }
                         }
@@ -745,7 +745,7 @@ pub mod input {
                     thread::sleep(Duration::from_secs(60));
                     client
                         .lock()
-                        .expect("should be able to get command connection")
+                        .expect("unable to get command connection")
                         .status()
                         .expect("failed keepalive!");
                 }
@@ -762,7 +762,7 @@ pub mod input {
 
         /// Returns a "quit" parameter.
         fn handle_key(&self, ch: char) -> bool {
-            let mut conn = self.client.lock().expect("should be able to get command connection");
+            let mut conn = self.client.lock().expect("unable to get command connection");
             // TODO: add helptext in-program
             match ch {
                 // quit
@@ -772,7 +772,7 @@ pub mod input {
                             format!("quit_{}",
                                     self.uuid.simple()).as_str()
                             )
-                        .expect("should be able to make quit channel")
+                        .expect("unable to make quit channel")
                         );
                     return true;
                 }
@@ -902,5 +902,4 @@ pub mod input {
 
         Ok(buffer[0].into())
     }
-
 }
