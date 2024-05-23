@@ -40,6 +40,8 @@ pub mod music {
         // non-music data
         format: Vec<String>,
         ditto_tags: Vec<bool>,
+        prev_album: Option<String>,
+        prev_album_total: Option<u32>,
         //use_ditto: bool,
         // everything that can potentially be missing is an Option type.
         // the exception to this is queue_total, which theoretically would be 0
@@ -251,20 +253,27 @@ pub mod music {
                 .unwrap_or_default().unwrap_or_default();
             drop(conn);
 
-            // update song
-            self.song = song.clone();
 
-            // try to get album
+            // get easier stuff first
             let album = Self::get_metadata(&song, "album");
-
-            // try to get album progress
             let album_track = Self::get_metadata(&song, "track")
                 .and_then(|t| t.parse().ok());
-            let album_total = Self::get_album_size(client, album.clone());
+
+            // get album total, optionally from cache
+            let album_total = if album == self.prev_album {
+                self.prev_album_total
+            } else {
+                Self::get_album_size(client, album.clone())
+            };
+
+            // update cache
+            self.prev_album.clone_from(&album);
+            self.prev_album_total = album_total;
 
             let date = Self::get_metadata(&song, "date");
 
             // mutate data
+            self.song = song.clone();
             self.artist = song.artist;
             self.title = song.title;
             self.album = album;
@@ -602,7 +611,6 @@ pub mod music {
             self.time_curr = self.time_curr.map(|t| t + Duration::from_secs(n));
         }
 
-        // TODO: optimize this by caching the result on a per-album basis
         fn get_album_size(client: &Mutex<Client>, album: Option<String>) -> Option<u32> {
             // build query
             let mut query = Query::new();
@@ -614,11 +622,8 @@ pub mod music {
             let search = conn.search(&query, window);
             drop(conn);
             // parse search
-            search.map_or(
-                None,
-                |search| Some(u32::try_from(search.len())
-                    .expect("can't cast search length"))
-            )
+            search.ok().map(|s| u32::try_from(s.len())
+                .expect("can't cast search length"))
         }
 
         fn get_pretty_time(dur: Option<Duration>) -> Option<String> {
