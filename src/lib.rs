@@ -258,11 +258,9 @@ pub mod music {
             let album = Self::get_metadata(&song, "album");
 
             // try to get album progress
-            let album_progress = Self::get_album_nums(client, album.clone(), song.clone());
-            let (album_track, album_total) = album_progress.map_or(
-                (None, None),
-                |s| (Some(s.0), Some(s.1)),
-                );
+            let album_track = Self::get_metadata(&song, "track")
+                .and_then(|t| t.parse().ok());
+            let album_total = Self::get_album_size(client, album.clone());
 
             let date = Self::get_metadata(&song, "date");
 
@@ -605,7 +603,7 @@ pub mod music {
         }
 
         // TODO: optimize this by caching the result on a per-album basis
-        fn get_album_nums(client: &Mutex<Client>, album: Option<String>, song: Song) -> Option<(u32, u32)> {
+        fn get_album_size(client: &Mutex<Client>, album: Option<String>) -> Option<u32> {
             // build query
             let mut query = Query::new();
             query.and(Term::Tag(Borrowed("Album")), album?);
@@ -616,25 +614,11 @@ pub mod music {
             let search = conn.search(&query, window);
             drop(conn);
             // parse search
-            match search {
-                Err(_) => { None },
-                Ok(search) => {
-                    // dprintln!("{search:?}");
-                    let mut track = None;
-                    for (k, v) in song.tags {
-                        if k == "Track" {
-                            track = Some(v);
-                        }
-                    }
-                    // return numeric value
-                    track?.parse().map_or( None, |track|
-                        Some((track,
-                            u32::try_from(search.len())
-                            .expect("can't cast search length")
-                        ))
-                    )
-                }
-            }
+            search.map_or(
+                None,
+                |search| Some(u32::try_from(search.len())
+                    .expect("can't cast search length"))
+            )
         }
 
         fn get_pretty_time(dur: Option<Duration>) -> Option<String> {
