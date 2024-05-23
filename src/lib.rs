@@ -410,7 +410,7 @@ pub mod music {
                         const STARS: [&str; 3] = ["<3", "< ", " ."];
 
                         let n = r.parse().unwrap_or(0);
-                        let (a, b) = if n >= 10 {
+                        let (a, b) = if n > 10 {
                             (5, 0)
                         } else {
                             (n/2, n%2)
