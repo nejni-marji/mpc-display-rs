@@ -758,12 +758,12 @@ pub mod input {
             }
        }
 
-        fn handle_key(&self, ch: u8) {
+        fn handle_key(&self, ch: char) {
             let mut conn = self.client.lock().expect("should be able to get command connection");
             // TODO: add helptext in-program
             match ch {
                 // quit
-                b'q' => {
+                'q' => {
                     let _ = conn.subscribe(
                         mpd::message::Channel::new(
                             format!("quit_{}",
@@ -774,7 +774,7 @@ pub mod input {
                     return;
                 }
                 // space for pause/play
-                b' ' => {
+                ' ' => {
                     let state = conn.status().unwrap_or_default().state;
                     match state {
                         State::Play => {
@@ -787,17 +787,17 @@ pub mod input {
                 }
 
                 // prev
-                b'p' | b'k' => { let _ = conn.prev(); }
+                'p' | 'k' => { let _ = conn.prev(); }
                 // next
-                b'n' | b'j' => { let _ = conn.next(); }
+                'n' | 'j' => { let _ = conn.next(); }
                 // volume up
-                b'=' | b'+' | b'0' | b')' => {
+                '=' | '+' | '0' | ')' => {
                     let vol = conn.status().unwrap_or_default().volume;
                     let vol = std::cmp::min(100, vol+5);
                     let _ = conn.volume(vol);
                 }
                 // volume down
-                b'-' | b'_' | b'9' | b'(' => {
+                '-' | '_' | '9' | '(' => {
                     let vol = conn.status().unwrap_or_default().volume;
                     // volume is i8, so you can do this
                     let vol = std::cmp::max(0, vol-5);
@@ -805,7 +805,7 @@ pub mod input {
                 }
 
                 // seek backwards
-                b'h' => {
+                'h' => {
                     let time = conn.status()
                         .unwrap_or_default()
                         .elapsed
@@ -818,7 +818,7 @@ pub mod input {
                     let _ = conn.rewind(time);
                 }
                 // seek forwards
-                b'l' => {
+                'l' => {
                     let time = conn.status()
                         .unwrap_or_default()
                         .elapsed
@@ -828,33 +828,33 @@ pub mod input {
                 }
 
                 // repeat
-                b'E' => {
+                'E' => {
                     let state = conn.status().unwrap_or_default().repeat;
                     let _ = conn.repeat(!state);
                 }
                 // random
-                b'R' => {
+                'R' => {
                     let state = conn.status().unwrap_or_default().random;
                     let _ = conn.random(!state);
                 }
                 // single
-                b'S' => {
+                'S' => {
                     let state = conn.status().unwrap_or_default().single;
                     let _ = conn.single(!state);
                 }
                 // consume
-                b'C' => {
+                'C' => {
                     let state = conn.status().unwrap_or_default().consume;
                     let _ = conn.consume(!state);
                 }
 
                 // shuffle
-                b'?' => {
+                '?' => {
                     let _ = conn.shuffle(..);
                 }
 
                 // stop
-                b'X' => {
+                'X' => {
                     let _ = conn.stop();
                 }
 
@@ -868,7 +868,7 @@ pub mod input {
         }
     }
 
-    fn getch() -> Result<u8, std::io::Error> {
+    fn getch() -> Result<char, std::io::Error> {
         let stdin = 0;
         let backup_termios = Termios::from_fd(stdin).expect("can't get file descriptor");
 
@@ -880,7 +880,7 @@ pub mod input {
         ch
     }
 
-    fn getch_raw() -> Result<u8, std::io::Error> {
+    fn getch_raw() -> Result<char, std::io::Error> {
         let stdin = 0;
         let mut termios = Termios::from_fd(stdin).expect("can't get file descriptor");
         // no echo and canonical mode
@@ -895,7 +895,7 @@ pub mod input {
         stdout.lock().flush()?;
         reader.read_exact(&mut buffer)?;
 
-        Ok(buffer[0])
+        Ok(buffer[0].into())
     }
 
 }
