@@ -853,7 +853,7 @@ pub mod input {
                     let crossfade = conn.status().unwrap_or_default()
                         .crossfade.unwrap_or_default();
                     if crossfade.as_secs() != 0 {
-                        let crossfade = crossfade + Duration::from_secs(1);
+                        let crossfade = crossfade - Duration::from_secs(1);
                         let _ = conn.crossfade(crossfade);
                     }
                 }
