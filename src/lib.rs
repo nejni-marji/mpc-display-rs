@@ -867,6 +867,18 @@ pub mod input {
                 // stop
                 'M' => { let _ = conn.stop(); }
 
+                // ratings
+                'r' => {
+                    if let Some(mut n) = getch().unwrap_or_default()
+                        .to_digit(10) {
+                            if n == 0 { n = 10 }
+                            if let Ok(Some(s)) = conn.currentsong() {
+                                let _ = conn.set_sticker("song", &s.file, "rating",
+                                    n.to_string().as_str());
+                            }
+                        }
+                }
+
                 // default
                 _ => {
                     #[cfg(debug_assertions)]
