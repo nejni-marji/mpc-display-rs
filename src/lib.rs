@@ -354,6 +354,9 @@ pub mod music {
             const COL_PAUSE  : &str = "\x1b[31m";    // red
             const COL_END    : &str = "\x1b[0m";     // reset
 
+            #[inline]
+            fn fmt_r(r: &str) -> String { format!("rating: {r}") }
+
             // start defining some variables
             let artist = self.artist
                 .clone().unwrap_or_else(|| UNKNOWN.to_string());
@@ -403,9 +406,6 @@ pub mod music {
                 _ =>UNKNOWN.to_string()
             };
 
-            #[inline]
-            fn fmt_r(r: String) -> String { format!("rating: {r}")
-            }
             let rating = self.rating
                 .clone().map_or_else(
                     || "?????".to_string(),
@@ -413,10 +413,10 @@ pub mod music {
                         const STARS: [&str; 3] = ["<3", "< ", " ."];
 
                         match r.parse::<usize>() {
-                            Err(_) => fmt_r(r),
+                            Err(_) => fmt_r(&r),
                             Ok(n) => {
                                 if n > 10 {
-                                    return fmt_r(r);
+                                    return fmt_r(&r);
                                 }
                                 let (a, b) = (n/2, n%2);
                                 let c = std::cmp::max(0, 5-a-b);
