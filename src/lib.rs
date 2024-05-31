@@ -185,7 +185,7 @@ pub mod music {
                     }
                     Subsystem::Sticker => {
                         data.update_sticker(&self.client);
-                        data.update_song(&self.client);
+                        data.update_status(&self.client);
                     }
                     Subsystem::Subscription => {
                         // get channel list
