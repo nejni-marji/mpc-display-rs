@@ -183,6 +183,9 @@ pub mod music {
                         data.update_song(&self.client);
                         data.update_sticker(&self.client);
                     }
+                    Subsystem::Sticker => {
+                        data.update_sticker(&self.client);
+                    }
                     Subsystem::Subscription => {
                         // get channel list
                         let mut conn = self.client.lock()
@@ -201,9 +204,6 @@ pub mod music {
                                 self.quit = true;
                             }
                         }
-                    }
-                    Subsystem::Sticker => {
-                        data.update_sticker(&self.client);
                     }
                     _ => {}
                 }
