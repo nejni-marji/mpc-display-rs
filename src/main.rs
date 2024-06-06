@@ -1,9 +1,14 @@
+#[allow(clippy::cast_possible_wrap)]
+mod music;
+mod input;
+
+use music::Player;
+use input::KeyHandler;
+
 use std::env;
 use std::string::ToString;
 use std::thread;
 use clap::Parser;
-use mpc_display_rs::music::Player;
-use mpc_display_rs::input::KeyHandler;
 use uuid::Uuid;
 
 const DEFAULT_HOST: &str = "127.0.0.1";
