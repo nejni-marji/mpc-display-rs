@@ -319,6 +319,7 @@ impl MusicData {
         self.queue = queue;
 
         // if these are not the same length, we fucked up
+        #[cfg(debug_assertions)]
         assert_eq!(
             self.format.clone().len(),
             self.ditto_tags.clone().len(),
