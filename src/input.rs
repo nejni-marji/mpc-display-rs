@@ -4,6 +4,7 @@ use std::io::Write;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
+
 use termios::{Termios, TCSANOW, ECHO, ICANON, tcsetattr};
 use mpd::{
     Client,

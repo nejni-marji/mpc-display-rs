@@ -5,6 +5,7 @@ use std::io::Write;
 use std::sync::{mpsc, Mutex};
 use std::thread;
 use std::time::Duration;
+
 use mpd::{Client, Idle, Query, search::Window, Song, song::QueuePlace, State, Subsystem, Term};
 use terminal_size::terminal_size;
 use uuid::Uuid;

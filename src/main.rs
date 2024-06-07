@@ -7,6 +7,7 @@ use input::KeyHandler;
 use std::env;
 use std::string::ToString;
 use std::thread;
+
 use clap::Parser;
 use uuid::Uuid;
 
