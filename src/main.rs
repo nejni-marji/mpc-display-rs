@@ -50,8 +50,7 @@ fn main() {
 
     // run player
     let mut player = Player::new(address.clone(), format, uuid);
-    player.init();
-    thread::spawn(move || { player.display(); });
+    thread::spawn(move || { player.init(); });
 
     // initialize input
     let mut parser = KeyHandler::new(address, uuid);

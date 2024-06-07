@@ -83,6 +83,8 @@ impl Player {
         data.update_song(&self.client);
         data.update_playlist(&self.client);
         data.update_sticker(&self.client);
+
+        self.display();
     }
 
     pub fn display(&mut self) {
