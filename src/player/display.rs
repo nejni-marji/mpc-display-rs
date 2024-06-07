@@ -62,12 +62,9 @@ struct MusicData {
 
 impl Display {
     #[must_use]
-    pub fn new(address: String, format: Vec<String>, uuid: Uuid) -> Self {
+    pub fn new(client: Client, format: Vec<String>, uuid: Uuid) -> Self {
         Self {
-            client: Mutex::new(
-                Client::connect(address)
-                .expect("unable to lock client")
-                ),
+            client: Mutex::new(client),
             data: MusicData::new(),
             format,
             quit: false,

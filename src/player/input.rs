@@ -18,10 +18,9 @@ pub struct KeyHandler {
 }
 
 impl KeyHandler {
-    #[must_use] pub fn new(address: String, uuid: Uuid) -> Self {
+    #[must_use] pub fn new(client: Client, uuid: Uuid) -> Self {
         Self {
-            client: Arc::new(Mutex::new(Client::connect(address)
-                .expect("unable to lock client"))),
+            client: Arc::new(Mutex::new(client)),
             uuid,
         }
     }
