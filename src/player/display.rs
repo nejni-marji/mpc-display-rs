@@ -21,7 +21,7 @@ use debug_print::{
 };
 
 #[derive(Debug,Default)]
-pub struct Player {
+pub struct Display {
     //address: String,
     client: Mutex<Client>,
     data: MusicData,
@@ -61,7 +61,7 @@ struct MusicData {
     rating: Option<String>,
 }
 
-impl Player {
+impl Display {
     #[must_use]
     pub fn new(address: String, format: Vec<String>, uuid: Uuid) -> Self {
         Self {

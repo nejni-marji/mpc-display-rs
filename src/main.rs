@@ -1,15 +1,11 @@
-mod music;
-mod input;
+mod player;
 
-use music::Player;
-use input::KeyHandler;
+use player::Player;
 
 use std::env;
 use std::string::ToString;
-use std::thread;
 
 use clap::Parser;
-use uuid::Uuid;
 
 const DEFAULT_HOST: &str = "127.0.0.1";
 const DEFAULT_PORT: u16 = 6600;
@@ -45,17 +41,8 @@ fn main() {
         .collect()
     };
 
-    // generate UUID for proper quit handling
-    let uuid = Uuid::new_v4();
-
-    // run player
-    let mut player = Player::new(address.clone(), format, uuid);
-    thread::spawn(move || { player.init(); });
-
-    // initialize input
-    let mut parser = KeyHandler::new(address, uuid);
-    parser.init();
-    println!("\x1b[?25h");
+    let _ = Player::new(address, format);
+    //player.init();
 }
 
 /// Displays the current state of an MPD server.
