@@ -268,9 +268,9 @@ impl MusicData {
         let date = Self::get_metadata(&song, "date");
 
         // mutate data
-        self.song = song.clone();
-        self.artist = song.artist;
-        self.title = song.title;
+        self.song = song;
+        self.artist.clone_from(&self.song.artist);
+        self.title.clone_from(&self.song.title);
         self.album = album;
         self.date = date;
         self.album_track = album_track;
@@ -288,7 +288,7 @@ impl MusicData {
 
         // check for repeated values per tag
         let mut ditto_tags = Vec::new();
-        for tag in self.format.clone() {
+        for tag in &self.format {
             // skip title, that's silly
             if tag == "title" {
                 ditto_tags.push(false);
@@ -300,11 +300,11 @@ impl MusicData {
             // temp value for first song
             let temp1 = queue.first().map_or_else(
                 || Some(String::new()),
-                |s| Self::get_metadata(s, &tag),
+                |s| Self::get_metadata(s, tag),
             );
             for song in &queue {
                 // temp value for other songs
-                let temp2 = Self::get_metadata(song, &tag);
+                let temp2 = Self::get_metadata(song, tag);
                 // if different, break from song loop
                 if temp1 != temp2 {
                     is_ditto = false;
@@ -635,8 +635,7 @@ impl MusicData {
     fn get_ersc(&self) -> String {
         let mut ersc = String::new();
         let base = ['e', 'r', 's', 'c'];
-        let ersc_opts = self.ersc_opts
-            .clone();
+        let ersc_opts = &self.ersc_opts;
         for (i, v) in base.iter().enumerate() {
             ersc.push(
                 // this unwrap_or is... middling at best, i think
