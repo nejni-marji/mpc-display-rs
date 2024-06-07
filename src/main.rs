@@ -1,4 +1,3 @@
-#[allow(clippy::cast_possible_wrap)]
 mod music;
 mod input;
 

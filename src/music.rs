@@ -591,6 +591,7 @@ impl MusicData {
         }
 
         let half = (display-1)/2;
+        #[allow(clippy::cast_possible_wrap)]
         let head = curr as i32 - half as i32;
         let tail = if display%2 == 0 {
             curr+half+1
