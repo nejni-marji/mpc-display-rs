@@ -5,6 +5,9 @@ use display::Display;
 use input::KeyHandler;
 
 use std::thread;
+use std::io;
+use std::io::Write;
+
 use uuid::Uuid;
 
 pub struct Player;
@@ -21,6 +24,9 @@ impl Player {
         // initialize input
         let mut parser = KeyHandler::new(address, uuid);
         parser.init();
-        print!("\x1b[?25h");
+
+        // reset terminal before exit
+        print!("\x1b[?25h\x1b[2J");
+        io::stdout().flush().expect("unable to flush buffer");
     }
 }
