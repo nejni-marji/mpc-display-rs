@@ -41,8 +41,7 @@ fn main() {
         .collect()
     };
 
-    let _ = Player::new(address, format);
-    //player.init();
+    Player::init(address, format);
 }
 
 /// Displays the current state of an MPD server.

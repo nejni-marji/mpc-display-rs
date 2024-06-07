@@ -13,7 +13,7 @@ use uuid::Uuid;
 pub struct Player;
 
 impl Player {
-    pub fn new(address: String, format: Vec<String>) {
+    pub fn init(address: String, format: Vec<String>) {
         // generate UUID for proper quit handling
         let uuid = Uuid::new_v4();
 
