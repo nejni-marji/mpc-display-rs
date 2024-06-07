@@ -151,7 +151,7 @@ impl Display {
     fn idle(&mut self) {
         // use client to idle. no early drop
         let mut conn = self.client.lock()
-            .expect("unable to lock client");
+            .expect("can't lock client");
         let subsystems = conn.wait(&[
             Subsystem::Player, Subsystem::Mixer,
             Subsystem::Options, Subsystem::Queue,
@@ -183,7 +183,7 @@ impl Display {
                 Subsystem::Subscription => {
                     // get channel list
                     let mut conn = self.client.lock()
-                        .expect("unable to lock client");
+                        .expect("can't lock client");
                     let channels = conn.channels().unwrap_or_default();
                     dprintln!("{channels:?}");
                     drop(conn);
@@ -194,7 +194,7 @@ impl Display {
                             format!("quit_{}",
                                 self.uuid.simple()).as_str()
                             )
-                            .expect("unable to make quit channel") {
+                            .expect("can't make quit channel") {
                             self.quit = true;
                         }
                     }
@@ -213,13 +213,13 @@ impl MusicData {
 
     pub fn display(&self) {
         print!("\x1b[?25l\x1b[2J{self}\x1b[H");
-        io::stdout().flush().expect("unable to flush buffer");
+        io::stdout().flush().expect("can't flush buffer");
     }
 
     fn update_status(&mut self, client: &Mutex<Client>) {
         // use client to get some data
         let mut conn = client.lock()
-            .expect("unable to lock client");
+            .expect("can't lock client");
         let status = conn.status()
             .unwrap_or_default();
         drop(conn);
@@ -243,7 +243,7 @@ impl MusicData {
     fn update_song(&mut self, client: &Mutex<Client>) {
         // use client to get some data
         let mut conn = client.lock()
-            .expect("unable to lock client");
+            .expect("can't lock client");
         let song = conn.currentsong()
             .unwrap_or_default().unwrap_or_default();
         drop(conn);
@@ -280,7 +280,7 @@ impl MusicData {
     fn update_playlist(&mut self, client: &Mutex<Client>) {
         // use client to get some data
         let mut conn = client.lock()
-            .expect("unable to lock client");
+            .expect("can't lock client");
         let queue = conn.queue()
             .unwrap_or_default();
         // dprintln!("[update_playlist()]\n[{queue:?}]");
@@ -329,7 +329,7 @@ impl MusicData {
     fn update_sticker(&mut self, client: &Mutex<Client>) {
         // use client to get some data
         let mut conn = client.lock()
-            .expect("unable to lock client");
+            .expect("can't lock client");
         let rating = conn.sticker("song", &self.song.file, "rating")
             .ok();
         // dprintln!("[update_playlist()]\n[{queue:?}]");
@@ -620,7 +620,7 @@ impl MusicData {
         let window = Window::from((0,u32::from(u16::MAX)));
         // lock client and search
         let mut conn = client.lock()
-            .expect("unable to lock client");
+            .expect("can't lock client");
         let search = conn.search(&query, window);
         drop(conn);
         // parse search

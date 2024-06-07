@@ -33,7 +33,7 @@ impl KeyHandler {
                 thread::sleep(Duration::from_secs(60));
                 client
                     .lock()
-                    .expect("unable to get command connection")
+                    .expect("can't get command connection")
                     .status()
                     .expect("failed keepalive!");
             }
@@ -50,7 +50,7 @@ impl KeyHandler {
 
     /// Returns a "quit" parameter.
     fn handle_key(&self, ch: char) -> bool {
-        let mut conn = self.client.lock().expect("unable to get command connection");
+        let mut conn = self.client.lock().expect("can't get command connection");
         // TODO: add helptext in-program
         match ch {
             // quit
@@ -60,7 +60,7 @@ impl KeyHandler {
                         format!("quit_{}",
                                 self.uuid.simple()).as_str()
                         )
-                    .expect("unable to make quit channel")
+                    .expect("can't make quit channel")
                     );
                 return true;
             }

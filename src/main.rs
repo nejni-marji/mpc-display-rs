@@ -26,7 +26,7 @@ fn main() {
         || env::var("MPD_PORT").map_or(
             DEFAULT_PORT,
             |p| p.parse()
-            .expect("invalid value for MPD_PORT"),
+            .expect("invalid value for port"),
         ),
         |p| p,
     );
