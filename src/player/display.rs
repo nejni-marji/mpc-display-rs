@@ -10,8 +10,6 @@ use mpd::{Client, Idle, Query, search::Window, Song, song::QueuePlace, State, Su
 use terminal_size::terminal_size;
 use uuid::Uuid;
 
-const UNKNOWN: &str = "?";
-
 #[allow(unused_imports)]
 use debug_print::{
     debug_print as dprint,
@@ -19,6 +17,8 @@ use debug_print::{
     debug_eprint as deprint,
     debug_eprintln as deprintln,
 };
+
+const UNKNOWN: &str = "?";
 
 #[derive(Debug,Default)]
 pub struct Display {
