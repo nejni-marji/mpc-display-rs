@@ -62,9 +62,9 @@ struct MusicData {
 }
 
 impl Player {
-    #[must_use] pub fn new(address: String, format: Vec<String>, uuid: Uuid) -> Self {
+    #[must_use]
+    pub fn new(address: String, format: Vec<String>, uuid: Uuid) -> Self {
         Self {
-            //address: address.clone(),
             client: Mutex::new(
                 Client::connect(address)
                 .expect("unable to lock client")
@@ -208,7 +208,8 @@ impl Player {
 }
 
 impl MusicData {
-    #[must_use] pub fn new() -> Self {
+    #[must_use]
+    pub fn new() -> Self {
         Self::default()
     }
 
