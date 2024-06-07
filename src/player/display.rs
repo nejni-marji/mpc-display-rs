@@ -22,7 +22,6 @@ const UNKNOWN: &str = "?";
 
 #[derive(Debug,Default)]
 pub struct Display {
-    //address: String,
     client: Mutex<Client>,
     data: MusicData,
     format: Vec<String>,
