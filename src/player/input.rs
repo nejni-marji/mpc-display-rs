@@ -1,6 +1,5 @@
 use std::io;
-use std::io::Read;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -171,7 +170,7 @@ impl KeyHandler {
     }
 }
 
-fn getch() -> Result<char, std::io::Error> {
+fn getch() -> Result<char, io::Error> {
     let stdin = 0;
     let backup_termios = Termios::from_fd(stdin).expect("can't get file descriptor");
 
@@ -183,7 +182,7 @@ fn getch() -> Result<char, std::io::Error> {
     ch
 }
 
-fn getch_raw() -> Result<char, std::io::Error> {
+fn getch_raw() -> Result<char, io::Error> {
     let stdin = 0;
     let mut termios = Termios::from_fd(stdin).expect("can't get file descriptor");
     // no echo and canonical mode
