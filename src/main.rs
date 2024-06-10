@@ -41,7 +41,7 @@ fn main() {
         .collect()
     };
 
-    Player::init(address, format);
+    Player::init(address, format, args.verbose);
 }
 
 /// Displays the current state of an MPD server.
@@ -66,4 +66,8 @@ struct Args {
     /// Equivalent to '--format title'
     #[arg(short, long)]
     title: bool,
+
+    /// Show redundant format fields
+    #[arg(short, long)]
+    verbose: bool,
 }

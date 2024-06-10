@@ -24,7 +24,6 @@ const UNKNOWN: &str = "?";
 pub struct Display {
     client: Mutex<Client>,
     data: MusicData,
-    format: Vec<String>,
     quit: bool,
     uuid: Uuid,
 }
@@ -33,14 +32,12 @@ pub struct Display {
 struct MusicData {
     // non-music data
     format: Vec<String>,
-    ditto_tags: Vec<bool>,
+    verbose: bool,
+    verbose_tags: Vec<bool>,
     prev_album: Option<String>,
     prev_album_total: Option<u32>,
-    //use_ditto: bool,
-    // everything that can potentially be missing is an Option type.
-    // the exception to this is queue_total, which theoretically would be 0
-    // when there is no value, but i've chosen to force it into an Option
-    // anyway, for consistency and because it makes things cooler later.
+    // music data
+    // `queue_total` does not need to be Option, but it is anyway for consistency.
     song: Song,
     queue: Vec<Song>,
     artist: Option<String>,
@@ -62,11 +59,10 @@ struct MusicData {
 
 impl Display {
     #[must_use]
-    pub fn new(client: Client, format: Vec<String>, uuid: Uuid) -> Self {
+    pub fn new(client: Client, format: Vec<String>, verbose: bool, uuid: Uuid) -> Self {
         Self {
             client: Mutex::new(client),
-            data: MusicData::new(),
-            format,
+            data: MusicData::new(format, verbose),
             quit: false,
             uuid,
         }
@@ -74,7 +70,6 @@ impl Display {
 
     pub fn init(&mut self) {
         let data = &mut self.data;
-        data.format.clone_from(&self.format);
         data.update_status(&self.client);
         data.update_song(&self.client);
         data.update_playlist(&self.client);
@@ -207,8 +202,12 @@ impl Display {
 
 impl MusicData {
     #[must_use]
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(format: Vec<String>, verbose: bool) -> Self {
+        Self {
+            format,
+            verbose,
+            ..Self::default()
+        }
     }
 
     pub fn display(&self) {
@@ -283,47 +282,45 @@ impl MusicData {
             .expect("can't lock client");
         let queue = conn.queue()
             .unwrap_or_default();
-        // dprintln!("[update_playlist()]\n[{queue:?}]");
         drop(conn);
 
-        // check for repeated values per tag
-        let mut ditto_tags = Vec::new();
-        for tag in &self.format {
-            // skip title, that's silly
-            if tag == "title" {
-                ditto_tags.push(false);
-                continue;
-            }
-            // check for equality, if anything is ever different then
-            // immediately stop searching
-            let mut is_ditto = true;
-            // temp value for first song
-            let temp1 = queue.first().map_or_else(
-                || Some(String::new()),
-                |s| Self::get_metadata(s, tag),
-            );
-            for song in &queue {
-                // temp value for other songs
-                let temp2 = Self::get_metadata(song, tag);
-                // if different, break from song loop
-                if temp1 != temp2 {
-                    is_ditto = false;
-                    break;
+        // default case
+        if self.verbose {
+            self.verbose_tags = Vec::new();
+        } else {
+            // check for repeated values per tag
+            let mut verbose_tags = Vec::new();
+            for tag in &self.format {
+                // skip title, that's silly
+                if tag == "title" {
+                    verbose_tags.push(false);
+                    continue;
                 }
+                // check for equality, if anything is ever different then
+                // immediately stop searching
+                let mut is_verbose = true;
+                // temp value for first song
+                let temp1 = queue.first().map_or_else(
+                    || Some(String::new()),
+                    |s| Self::get_metadata(s, tag),
+                );
+                for song in &queue {
+                    // temp value for other songs
+                    let temp2 = Self::get_metadata(song, tag);
+                    // if different, break from song loop
+                    if temp1 != temp2 {
+                        is_verbose = false;
+                        break;
+                    }
+                }
+                dprintln!("[update_playlist()]\n[is {tag} verbose? {is_verbose}]");
+                verbose_tags.push(is_verbose);
             }
-            dprintln!("[update_playlist()]\n[is {tag} ditto? {is_ditto}]");
-            ditto_tags.push(is_ditto);
+            self.verbose_tags = verbose_tags;
         }
-
-        self.ditto_tags = ditto_tags;
+        // always assign queue
         self.queue = queue;
 
-        // if these are not the same length, we fucked up
-        #[cfg(debug_assertions)]
-        assert_eq!(
-            self.format.clone().len(),
-            self.ditto_tags.clone().len(),
-        );
     }
 
     fn update_sticker(&mut self, client: &Mutex<Client>) {
@@ -570,11 +567,10 @@ impl MusicData {
         // get song text
         let mut tags = Vec::new();
         for (i, v) in self.format.clone().into_iter().enumerate() {
-            if *self.ditto_tags.get(i).expect("assert that these are the same length") {
+            if !self.verbose && *self.verbose_tags.get(i).unwrap_or(&false) {
                 continue;
             }
-            let v = v.as_str();
-            tags.push(Self::get_metadata(song, v).unwrap_or_else(|| UNKNOWN.to_string()));
+            tags.push(Self::get_metadata(song, &v).unwrap_or_else(|| UNKNOWN.to_string()));
         }
 
         let songtext = tags.join(" * ");
