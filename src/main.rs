@@ -55,11 +55,11 @@ struct Args {
     #[arg(short, long, value_delimiter = ',')]
     format: Option<Vec<String>>,
 
-    /// Equivalent to '--format title'
-    #[arg(short, long)]
-    title: bool,
-
     /// Show redundant format fields
     #[arg(short, long)]
     verbose: bool,
+
+    /// Equivalent to '--format title'
+    #[arg(short, long)]
+    title: bool,
 }
