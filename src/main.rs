@@ -31,9 +31,15 @@ fn main() {
         |p| p,
     );
     let address = format!("{host}:{port}");
-    let format = args.format.unwrap_or_else(
-        || vec!["title".into(), "artist".into(), "album".into()]
-    );
+    let format = if args.title {
+        vec!["title".into()]
+    } else if args.reverse {
+        vec!["artist".into(), "album".into(), "title".into()]
+    } else {
+        args.format.unwrap_or_else(
+            || vec!["title".into(), "artist".into(), "album".into()]
+        )
+    };
 
     Player::init(address, format, args.verbose);
 }
@@ -62,4 +68,8 @@ struct Args {
     /// Equivalent to '--format title'
     #[arg(short, long)]
     title: bool,
+
+    /// Equivalent to '--format artist,album,title'
+    #[arg(short, long)]
+    reverse: bool,
 }
