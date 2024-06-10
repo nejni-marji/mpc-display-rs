@@ -31,15 +31,9 @@ fn main() {
         |p| p,
     );
     let address = format!("{host}:{port}");
-    let format: Vec<_> = if args.title {
-        vec!["title".to_string()]
-    } else {
-        args.format
-        .as_str()
-        .split(',')
-        .map(ToString::to_string)
-        .collect()
-    };
+    let format = args.format.unwrap_or_else(
+        || vec!["title".into(), "artist".into(), "album".into()]
+    );
 
     Player::init(address, format, args.verbose);
 }
@@ -58,10 +52,8 @@ struct Args {
     port: Option<u16>,
 
     /// Comma-separated list of song metadata to display
-    // TODO: is there a way to use comma-separated lists with derive?
-    #[arg(short, long,
-          default_value_t = String::from("title,artist,album"))]
-    format: String,
+    #[arg(short, long, value_delimiter = ',')]
+    format: Option<Vec<String>>,
 
     /// Equivalent to '--format title'
     #[arg(short, long)]
