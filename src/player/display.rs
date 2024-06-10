@@ -351,25 +351,25 @@ impl MusicData {
 
         // start defining some variables
         let artist = self.artist
-            .clone().unwrap_or_else(|| UNKNOWN.to_string());
+            .clone().unwrap_or_else(|| UNKNOWN.into());
         let title = self.title
-            .clone().unwrap_or_else(|| UNKNOWN.to_string());
+            .clone().unwrap_or_else(|| UNKNOWN.into());
 
         // dprintln!("self.album_track: {:?}", self.album_track);
         let album_track = self.album_track.map_or_else(
-            || UNKNOWN.to_string(),
+            || UNKNOWN.into(),
             |s| s.to_string()
             );
         let album_total = self.album_total.map_or_else(
-            || UNKNOWN.to_string(),
+            || UNKNOWN.into(),
             |s| s.to_string()
             );
 
         let album = self.album
-            .clone().unwrap_or_else(|| UNKNOWN.to_string());
+            .clone().unwrap_or_else(|| UNKNOWN.into());
 
         let date = self.date
-            .clone().unwrap_or_else(|| UNKNOWN.to_string());
+            .clone().unwrap_or_else(|| UNKNOWN.into());
 
         let state = match self.state {
             State::Play => "|>",
@@ -378,29 +378,29 @@ impl MusicData {
         };
 
         let queue_track = self.queue_track.map_or_else(
-            || UNKNOWN.to_string(),
+            || UNKNOWN.into(),
             |s| (s.pos+1).to_string(),
             );
         let queue_total = self.queue_total.map_or_else(
-            || UNKNOWN.to_string(),
+            || UNKNOWN.into(),
             |s| s.to_string(),
             );
 
         let elapsed_pretty = Self::get_pretty_time(self.time_curr)
-            .unwrap_or_else(|| UNKNOWN.to_string());
+            .unwrap_or_else(|| UNKNOWN.into());
         let duration_pretty = Self::get_pretty_time(self.time_total)
-            .unwrap_or_else(|| UNKNOWN.to_string());
+            .unwrap_or_else(|| UNKNOWN.into());
 
         let percent = match (self.time_curr, self.time_total) {
             (Some(curr), Some(total)) => {
                 (100*curr.as_secs()/total.as_secs()).to_string()
             },
-            _ =>UNKNOWN.to_string()
+            _ =>UNKNOWN.into()
         };
 
         let rating = self.rating
             .clone().map_or_else(
-                || "?????".to_string(),
+                || "?????".into(),
                 |r| {
                     const STARS: [&str; 3] = ["<3", "< ", " ."];
 
@@ -570,7 +570,7 @@ impl MusicData {
             if !self.verbose && *self.verbose_tags.get(i).unwrap_or(&false) {
                 continue;
             }
-            tags.push(Self::get_metadata(song, &v).unwrap_or_else(|| UNKNOWN.to_string()));
+            tags.push(Self::get_metadata(song, &v).unwrap_or_else(|| UNKNOWN.into()));
         }
 
         let songtext = tags.join(" * ");
