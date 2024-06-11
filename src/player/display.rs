@@ -188,9 +188,9 @@ impl Display {
                         if *i == mpd::message::Channel::new(
                             format!("quit_{}",
                                 self.uuid.simple()).as_str()
-                            )
+                        )
                             .expect("can't make quit channel") {
-                            self.quit = true;
+                                self.quit = true;
                         }
                     }
                 }
@@ -363,11 +363,11 @@ impl MusicData {
         let album_track = self.album_track.map_or_else(
             || UNKNOWN.into(),
             |s| s.to_string()
-            );
+        );
         let album_total = self.album_total.map_or_else(
             || UNKNOWN.into(),
             |s| s.to_string()
-            );
+        );
 
         let album = self.album
             .clone().unwrap_or_else(|| UNKNOWN.into());
@@ -384,11 +384,11 @@ impl MusicData {
         let queue_track = self.queue_track.map_or_else(
             || UNKNOWN.into(),
             |s| (s.pos+1).to_string(),
-            );
+        );
         let queue_total = self.queue_total.map_or_else(
             || UNKNOWN.into(),
             |s| s.to_string(),
-            );
+        );
 
         let elapsed_pretty = Self::get_pretty_time(self.time_curr)
             .unwrap_or_else(|| UNKNOWN.into());
@@ -431,7 +431,7 @@ impl MusicData {
         let crossfade = self.crossfade.map_or_else(
             String::new,
             |t| format!(" (x: {})", t.as_secs()),
-            );
+        );
 
         // apply coloring!!!
         let col_state = match self.state {
@@ -443,7 +443,7 @@ impl MusicData {
         // final format text
         format!(
             "{COL_ARTIST}{artist}{COL_END} * {COL_TITLE}{title}{COL_END}\n({COL_TRACK}#{album_track}/{album_total}{COL_END}) {COL_ALBUM}{album}{COL_END} {COL_DATE}({date}){COL_END}\n{col_state}{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%{COL_END}  {COL_RATING}{rating}{COL_END}\n{col_state}{ersc_str}, {volume}%{crossfade}{COL_END}"
-            )
+        )
     }
 
     // TODO: clean this up after it's done. this is probably full of other bugs, lol!
@@ -454,7 +454,7 @@ impl MusicData {
         let song_pos = self.song.place.map_or_else(
             || 0,
             |p| p.pos,
-            );
+        );
 
         // determine padding for format_song()
         let padding = 1 + queue_size
@@ -468,7 +468,7 @@ impl MusicData {
                 counter += 1;
                 let is_curr = counter == song_pos+1;
                 self.format_song(i, counter, padding, is_curr)
-        })
+            })
         .collect::<Vec<_>>();
 
         // prepare to crop the queue
@@ -476,14 +476,14 @@ impl MusicData {
             height-header_height,
             queue_size,
             song_pos,
-            );
+        );
         let tail = std::cmp::min(
             queue_size,
             head + height-header_height,
-            );
+        );
         let tail = std::cmp::min(
             tail, queue.len().try_into().unwrap_or(0)
-            );
+        );
 
         dprintln!("head: {head}");
         dprintln!("tail: {tail}");
@@ -499,7 +499,7 @@ impl MusicData {
         // wrapped queue
         let opt = textwrap::Options::new(
             width.try_into().expect("nothing should be that big")
-            );
+        );
         let queue = textwrap::wrap(&queue, opt);
 
         // CODE REUSE
@@ -518,14 +518,14 @@ impl MusicData {
             height-header_height,
             queue_size,
             song_pos,
-            );
+        );
         let tail = std::cmp::min(
             queue_size,
             head + height-header_height,
-            );
+        );
         let tail = std::cmp::min(
             tail, queue.len().try_into().unwrap_or(0)
-            );
+        );
 
         dprintln!("head: {head}");
         dprintln!("tail: {tail}");
@@ -682,10 +682,10 @@ impl fmt::Display for MusicData {
         let header = self.print_header();
         let opt = textwrap::Options::new(
             width.try_into().expect("nothing should be that big")
-            );
+        );
         let header = textwrap::fill(
             header.as_str(), opt
-            );
+        );
         let header_height = (1 + header.matches('\n').count())
             .try_into().expect("can't cast header size");
         dprintln!("[header_height: {header_height}]");
@@ -693,6 +693,6 @@ impl fmt::Display for MusicData {
         write!(f, "{}\n{}",
             header,
             self.print_queue(height, width, header_height),
-            )
+        )
     }
 }

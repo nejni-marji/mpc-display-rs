@@ -35,7 +35,7 @@ impl KeyHandler {
                     .expect("can't get command connection")
                     .status()
                     .expect("failed keepalive!");
-            }
+                }
         });
 
         loop {
@@ -45,7 +45,7 @@ impl KeyHandler {
                 break
             }
         }
-   }
+    }
 
     /// Returns a "quit" parameter.
     fn handle_key(&self, ch: char) -> bool {
@@ -57,10 +57,10 @@ impl KeyHandler {
                 let _ = conn.subscribe(
                     mpd::message::Channel::new(
                         format!("quit_{}",
-                                self.uuid.simple()).as_str()
-                        )
+                            self.uuid.simple()).as_str()
+                    )
                     .expect("can't make quit channel")
-                    );
+                );
                 return true;
             }
 
@@ -117,7 +117,7 @@ impl KeyHandler {
             // ratings
             'H' | '[' | '{' => {
                 Self::inc_rating(-1, &mut conn);
-            }
+                }
             'L' | ']' | '}' => {
                 Self::inc_rating(1, &mut conn);
             }
@@ -182,9 +182,9 @@ impl KeyHandler {
             .unwrap_or_default().unwrap_or_default();
         let rating: i8 = conn.sticker("song", &song.file, "rating")
             .ok().map_or(
-            -1,
-            |r| r.parse().unwrap_or(-1)
-        );
+                -1,
+                |r| r.parse().unwrap_or(-1)
+            );
 
         let rating = (rating + inc).clamp(-1, 10);
 
