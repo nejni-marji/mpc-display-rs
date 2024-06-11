@@ -400,7 +400,7 @@ impl MusicData {
 
         let rating = self.rating
             .clone().map_or_else(
-                || "?????".into(),
+                || " ? ? ? ? ?".into(),
                 |r| {
                     const STARS: [&str; 3] = ["<3", "< ", " ."];
 

@@ -114,6 +114,14 @@ impl KeyHandler {
                 let _ = conn.rewind(time);
             }
 
+            // ratings
+            'H' => {
+                Self::inc_rating(-1, &mut conn);
+            }
+            'L' => {
+                Self::inc_rating(1, &mut conn);
+            }
+
             // repeat
             'E' => {
                 let state = conn.status().unwrap_or_default().repeat;
@@ -167,6 +175,26 @@ impl KeyHandler {
         }
         drop(conn);
         false
+    }
+
+    fn inc_rating(inc: i8, conn: &mut Client) {
+        let song = conn.currentsong()
+            .unwrap_or_default().unwrap_or_default();
+        let rating: i8 = conn.sticker("song", &song.file, "rating")
+            .ok().map_or(
+            -1,
+            |r| r.parse().unwrap_or(-1)
+        );
+
+        let rating = (rating + inc).clamp(-1, 10);
+
+        if rating == -1 {
+            let _ = conn.delete_sticker(
+                "song", &song.file, "rating");
+        } else {
+            let _ = conn.set_sticker(
+                "song", &song.file, "rating", &rating.to_string());
+        }
     }
 }
 
