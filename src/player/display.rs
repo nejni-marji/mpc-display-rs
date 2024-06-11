@@ -353,7 +353,11 @@ impl MusicData {
         let artist = self.artist
             .clone().unwrap_or_else(|| UNKNOWN.into());
         let title = self.title
-            .clone().unwrap_or_else(|| UNKNOWN.into());
+            .clone().unwrap_or_else(|| {
+                let file = self.song.file.clone();
+                file.split('/').last()
+                    .unwrap_or(UNKNOWN).into()
+            });
 
         // dprintln!("self.album_track: {:?}", self.album_track);
         let album_track = self.album_track.map_or_else(
