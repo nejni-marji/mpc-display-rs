@@ -58,8 +58,7 @@ impl KeyHandler {
                     mpd::message::Channel::new(
                         format!("quit_{}",
                             self.uuid.simple()).as_str()
-                    )
-                    .expect("can't make quit channel")
+                    ).expect("can't make quit channel")
                 );
                 return true;
             }
