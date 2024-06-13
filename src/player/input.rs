@@ -115,10 +115,10 @@ impl KeyHandler {
             }
 
             // ratings
-            'H' | '[' | '{' => {
+            '[' | '{' => {
                 Self::inc_rating(-1, &mut conn);
                 }
-            'L' | ']' | '}' => {
+            ']' | '}' => {
                 Self::inc_rating(1, &mut conn);
             }
 

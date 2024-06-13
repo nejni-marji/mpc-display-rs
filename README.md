@@ -19,7 +19,7 @@ This is a client for Music Player Daemon.
 
 * `F` - shuffle (reorders queue in-place)
 
-* `H`/`[`/`{`, `L`/`]`/`}` - adjust current track rating
+* `[`/`{`, `]`/`}` - adjust current track rating
 
 * `x`/`X` - crossfade up/down
 
