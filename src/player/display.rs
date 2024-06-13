@@ -494,10 +494,9 @@ impl MusicData {
         }
         let song_pos = song_pos.unwrap_or(0);
 
-        // (again) filter and string-ify the queue
+        // filter the queue
         let queue = Self::filter_queue(&queue,
-            queue_height, queue_size, song_pos)
-            .join("\n");
+            queue_height, queue_size, song_pos);
 
         // create padding to add later
         let len = queue.len().try_into().unwrap_or(0);
@@ -510,8 +509,8 @@ impl MusicData {
         let diff = diff.try_into().unwrap_or(0);
         let queue_padding = vec![""; diff].join("\n");
 
-        // add padding to queue
-        let queue = queue + &queue_padding;
+        // string-ify and add padding to queue
+        let queue = queue.join("\n") + &queue_padding;
 
         // finally return
         queue
