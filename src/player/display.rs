@@ -449,6 +449,9 @@ impl MusicData {
     // TODO: clean this up after it's done. this is probably full of other bugs, lol!
     #[allow(clippy::let_and_return)]
     fn print_queue(&self, height: u32, width: u32, header_height: u32) -> String {
+        // get height of queue
+        let queue_height = height-header_height;
+
         // get size of queue and current song index
         let queue_size: u32 = self.queue.len().try_into().unwrap_or(0);
         let song_pos = self.song.place.map_or_else(
@@ -473,13 +476,13 @@ impl MusicData {
 
         // get variables to filter the queue
         let head = Self::get_centered_index(
-            height-header_height,
+            queue_height,
             queue_size,
             song_pos,
         );
         let tail = std::cmp::min(
             queue_size,
-            head + height-header_height,
+            head + queue_height,
         );
         let tail = std::cmp::min(
             tail, queue.len().try_into().unwrap_or(0)
@@ -514,13 +517,13 @@ impl MusicData {
 
         // (again) get variables to filter the queue
         let head = Self::get_centered_index(
-            height-header_height,
+            queue_height,
             queue_size,
             song_pos,
         );
         let tail = std::cmp::min(
             queue_size,
-            head + height-header_height,
+            head + queue_height,
         );
         let tail = std::cmp::min(
             tail, queue.len().try_into().unwrap_or(0)
@@ -536,7 +539,7 @@ impl MusicData {
 
         // create padding to add later
         let len = queue.len().try_into().unwrap_or(0);
-        let mut diff: i32 = ((height-header_height) - len).
+        let mut diff: i32 = ((queue_height) - len).
             try_into().unwrap_or(0);
         if diff < 0 {
             diff = 0;
