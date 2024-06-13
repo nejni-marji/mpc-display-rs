@@ -47,7 +47,7 @@ impl KeyHandler {
         }
     }
 
-    /// Returns a "quit" parameter.
+    // returns a "quit" parameter.
     fn handle_key(&self, ch: char) -> bool {
         let mut conn = self.client.lock().expect("can't get command connection");
         // TODO: add helptext in-program
