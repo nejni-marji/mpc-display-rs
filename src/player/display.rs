@@ -107,6 +107,7 @@ impl Display {
             // prepare channel
             let (tx, rx) = mpsc::channel();
 
+            // TODO: time does not pass for delay thread when in helptext
             if self.signal == Signal::Normal {
                 // spawn thread if we need it
                 if self.data.state == State::Play {
@@ -229,8 +230,20 @@ impl Display {
     }
 
     fn helptext() {
-        // TODO: actually write the helptext
-        println!("1: TODO HELPTEXT\n2: TODO HELPTEXT\n3: TODO HELPTEXT\n4: TODO HELPTEXT");
+        // TODO: make this... not a const? and dynamically format the text?
+        const HELPTEXT: &str = "\x1b[2J
+  \x1b[1mh, ?\x1b[0m ......show help text
+  \x1b[1mspace \x1b[0m ....pause/play
+  \x1b[1mpk, nj\x1b[0m ....prev/next track
+  \x1b[1mH, L\x1b[0m ......seek back/ahead
+  \x1b[1m+0, -9\x1b[0m ....volume up/down
+  \x1b[1mERSC\x1b[0m ......repeat, random, single, consume
+  \x1b[1mF\x1b[0m .........shuffle (reorders queue in-place)
+  \x1b[1m[, ]\x1b[0m ......adjust current track rating
+  \x1b[1mM\x1b[0m .........stops playback
+  \x1b[1mxX\x1b[0m ........crossfade up/down";
+
+        println!("{HELPTEXT}");
     }
 }
 
@@ -245,6 +258,7 @@ impl MusicData {
     }
 
     pub fn display(&self) {
+        // TODO: only hide the cursor once
         print!("\x1b[?25l\x1b[2J{self}\x1b[H");
         io::stdout().flush().expect("can't flush buffer");
     }
