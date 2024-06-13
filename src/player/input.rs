@@ -61,7 +61,7 @@ impl KeyHandler {
     fn handle_key(&self, ch: char, conn: &mut Client) -> bool {
         match ch {
             // helptext
-            '/' | '?' => {
+            'h' | '?' | '/' => {
                 return self.handle_help(conn);
             }
             // quit
@@ -114,7 +114,7 @@ impl KeyHandler {
             }
 
             // seek backwards
-            'h' => {
+            'H' => {
                 let time = conn.status().unwrap_or_default()
                     .elapsed.unwrap_or_default();
                 let time = if time.as_secs() <= 10 {
@@ -125,7 +125,7 @@ impl KeyHandler {
                 let _ = conn.rewind(time);
             }
             // seek forwards
-            'l' => {
+            'L' => {
                 let time = conn.status().unwrap_or_default()
                     .elapsed.unwrap_or_default();
                 let time = time + Duration::from_secs(10);
@@ -214,7 +214,7 @@ impl KeyHandler {
                 let ch = if ch == '\x1b' { '?' } else { ch };
                 match ch {
                     // allowed inputs during helptext: esc, help, quit
-                    '/' | '?' | 'H' | 'q' | 'Q' => {
+                    'h' | '?' | '/' | 'q' | 'Q' => {
                         return self.handle_key(ch, conn);
                     },
                     _ => {}

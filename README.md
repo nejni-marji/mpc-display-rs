@@ -5,6 +5,8 @@ This is a client for Music Player Daemon.
 
 ## Controls
 
+* `h`/`?`/`/` - show help text
+
 * `space` - pause/play
 
 * `M` - stops playback
@@ -13,7 +15,7 @@ This is a client for Music Player Daemon.
 
 * `=`/`+`/`0`/`)`, `-`/`_`/`9`/`(` - volume up/down
 
-* `h`/`l` - seek back/ahead
+* `H`/`L` - seek back/ahead
 
 * `E`/`R`/`S`/`C` - repeat, random, single, consume
 
