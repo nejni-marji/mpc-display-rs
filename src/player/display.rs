@@ -446,7 +446,6 @@ impl MusicData {
         )
     }
 
-    // TODO: clean this up after it's done. this is probably full of other bugs, lol!
     #[allow(clippy::let_and_return)]
     fn print_queue(&self, height: u32, width: u32, header_height: u32) -> String {
         // get height of queue
@@ -474,6 +473,54 @@ impl MusicData {
             })
         .collect::<Vec<_>>();
 
+        // filter and string-ify the queue
+        let queue = Self::filter_queue(&queue,
+            queue_height, queue_size, song_pos)
+            .join("\n");
+
+        // wrap the queue
+        let opt = textwrap::Options::new(
+            width.try_into().expect("nothing should be that big")
+        );
+        let queue = textwrap::wrap(&queue, opt);
+
+        // (again) get size of queue and current song index
+        let queue_size: u32 = queue.len().try_into().expect("nothing should be that big");
+        let mut song_pos: Option<u32> = None;
+        for (i, v) in queue.iter().enumerate() {
+            if v.starts_with('>') || v.starts_with('\x1b') {
+                song_pos = Some(i.try_into().expect("nothing should be that big"));
+            }
+        }
+        let song_pos = song_pos.unwrap_or(0);
+
+        // (again) filter and string-ify the queue
+        let queue = Self::filter_queue(&queue,
+            queue_height, queue_size, song_pos)
+            .join("\n");
+
+        // create padding to add later
+        let len = queue.len().try_into().unwrap_or(0);
+        let mut diff: i32 = ((queue_height) - len).
+            try_into().unwrap_or(0);
+        if diff < 0 {
+            diff = 0;
+        }
+        diff += 1;
+        let diff = diff.try_into().unwrap_or(0);
+        let queue_padding = vec![""; diff].join("\n");
+
+        // add padding to queue
+        let queue = queue + &queue_padding;
+
+        // finally return
+        queue
+    }
+
+    #[allow(clippy::let_and_return)]
+    fn filter_queue<T>(queue: &[T],
+        queue_height: u32, queue_size: u32, song_pos: u32) -> &[T]
+    {
         // get variables to filter the queue
         let head = Self::get_centered_index(
             queue_height,
@@ -496,64 +543,6 @@ impl MusicData {
         let queue = queue.get(head as usize..tail as usize)
             .unwrap_or_default();
 
-        // string-ify filtered queue
-        let queue = queue.join("\n");
-
-        // wrap the queue
-        let opt = textwrap::Options::new(
-            width.try_into().expect("nothing should be that big")
-        );
-        let queue = textwrap::wrap(&queue, opt);
-
-        // (again) get size of queue and current song index
-        let queue_size: u32 = queue.len().try_into().expect("nothing should be that big");
-        let mut song_pos: Option<u32> = None;
-        for (i, v) in queue.iter().enumerate() {
-            if v.starts_with('>') || v.starts_with('\x1b') {
-                song_pos = Some(i.try_into().expect("nothing should be that big"));
-            }
-        }
-        let song_pos = song_pos.unwrap_or(0);
-
-        // (again) get variables to filter the queue
-        let head = Self::get_centered_index(
-            queue_height,
-            queue_size,
-            song_pos,
-        );
-        let tail = std::cmp::min(
-            queue_size,
-            head + queue_height,
-        );
-        let tail = std::cmp::min(
-            tail, queue.len().try_into().unwrap_or(0)
-        );
-
-        dprintln!("head: {head}");
-        dprintln!("tail: {tail}");
-        dprintln!("len: {}", queue.len());
-
-        // (again) actually filter the queue
-        let queue = queue.get(head as usize..tail as usize)
-            .unwrap_or_default();
-
-        // create padding to add later
-        let len = queue.len().try_into().unwrap_or(0);
-        let mut diff: i32 = ((queue_height) - len).
-            try_into().unwrap_or(0);
-        if diff < 0 {
-            diff = 0;
-        }
-        diff += 1;
-        let diff = diff.try_into().unwrap_or(0);
-        let queue_padding = vec![""; diff].join("\n");
-
-        // (again) string-ify filtered queue
-        // and add padding to queue
-        let queue = queue.join("\n")
-            + &queue_padding;
-
-        // finally return
         queue
     }
 
