@@ -11,6 +11,14 @@ use mpd::{
 };
 use uuid::Uuid;
 
+#[allow(unused_imports)]
+use debug_print::{
+    debug_print as dprint,
+    debug_println as dprintln,
+    debug_eprint as deprint,
+    debug_eprintln as deprintln,
+};
+
 pub struct KeyHandler {
     client: Arc<Mutex<Client>>,
     uuid: Uuid,
@@ -47,11 +55,38 @@ impl KeyHandler {
         }
     }
 
-    // returns a "quit" parameter.
+    // huge match statement to handle keyboard input. returns "quit" param.
+    #[allow(clippy::too_many_lines)]
     fn handle_key(&self, ch: char) -> bool {
         let mut conn = self.client.lock().expect("can't get command connection");
-        // TODO: add helptext in-program
         match ch {
+            // helptext
+            '/' | '?' => {
+                let help_chan = mpd::message::Channel::new(
+                    format!("help_{}",
+                        self.uuid.simple()).as_str()
+                ).expect("can't make help channel");
+
+                #[allow(clippy::if_not_else)]
+                if !conn.channels().unwrap_or_default().contains(&help_chan) {
+                    dprintln!("input: +help_chan");
+                    let _ = conn.subscribe(help_chan);
+                } else {
+                    dprintln!("input: -help_chan");
+                    let _ = conn.unsubscribe(help_chan);
+
+                    // toggle temp channel to force idle break
+                    let _ = conn.subscribe(
+                        mpd::message::Channel::new("tmp")
+                        .expect("can't make temp channel")
+                    );
+                    let _ = conn.unsubscribe(
+                        mpd::message::Channel::new("tmp")
+                        .expect("can't make temp channel")
+                    );
+                }
+
+            }
             // quit
             'q' => {
                 let _ = conn.subscribe(

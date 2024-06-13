@@ -20,11 +20,19 @@ use debug_print::{
 
 const UNKNOWN: &str = "?";
 
+#[derive(Debug,Default,PartialEq)]
+enum Signal {
+    #[default]
+    Normal,
+    Help,
+    Quit,
+}
+
 #[derive(Debug,Default)]
 pub struct Display {
     client: Mutex<Client>,
     data: MusicData,
-    quit: bool,
+    signal: Signal,
     uuid: Uuid,
 }
 
@@ -63,7 +71,7 @@ impl Display {
         Self {
             client: Mutex::new(client),
             data: MusicData::new(format, verbose),
-            quit: false,
+            signal: Signal::default(),
             uuid,
         }
     }
@@ -86,8 +94,46 @@ impl Display {
         let mut counter_idle = 0;
         loop {
             // check quit status
-            if self.quit {
-                break
+            match self.signal {
+                Signal:: Normal => {
+                },
+                Signal::Quit => {
+                    break
+                },
+                Signal::Help => {
+                    // TODO: actually write the helptext. probably move this to a separate function, too.
+                    println!("1: TODO HELPTEXT\n2: TODO HELPTEXT\n3: TODO HELPTEXT\n4: TODO HELPTEXT");
+
+                    // wait for absence of help channel
+                    'help: loop {
+                        // use client to get channels
+                        let mut conn = self.client.lock()
+                            .expect("can't lock client");
+                        let _ = conn.wait(&[Subsystem::Subscription])
+                            .unwrap_or_default();
+                        let channels = conn.channels().unwrap_or_default();
+                        drop(conn);
+
+                        let help_chan = mpd::message::Channel::new(
+                            format!("help_{}",
+                                self.uuid.simple()).as_str()
+                        ).expect("can't make help channel");
+
+                        let quit_chan = mpd::message::Channel::new(
+                            format!("quit_{}",
+                                self.uuid.simple()).as_str()
+                        ).expect("can't make quit channel");
+
+                        // if help channel is gone
+                        if channels.contains(&quit_chan) {
+                            self.signal = Signal::Quit;
+                            break 'help
+                        } else if !channels.contains(&help_chan) {
+                            self.signal = Signal::Normal;
+                            break 'help
+                        }
+                    }
+                },
             }
 
             // prepare channel
@@ -186,11 +232,15 @@ impl Display {
                     // check for quit channel
                     for i in &channels {
                         if *i == mpd::message::Channel::new(
+                            format!("help_{}",
+                                self.uuid.simple()).as_str()
+                        ).expect("can't make help channel") {
+                            self.signal = Signal::Help;
+                        } else if *i == mpd::message::Channel::new(
                             format!("quit_{}",
                                 self.uuid.simple()).as_str()
-                        )
-                            .expect("can't make quit channel") {
-                                self.quit = true;
+                        ).expect("can't make quit channel") {
+                            self.signal = Signal::Quit;
                         }
                     }
                 }
