@@ -18,6 +18,10 @@ impl Player {
         // generate UUID for proper quit handling
         let uuid = Uuid::new_v4();
 
+        // hide cursor for this program
+        print!("\x1b[?25l");
+        io::stdout().flush().expect("can't flush buffer");
+
         // initialize display
         let display_client = Client::connect(&address)
             .expect("can't connect to client");

@@ -258,8 +258,7 @@ impl MusicData {
     }
 
     pub fn display(&self) {
-        // TODO: only hide the cursor once
-        print!("\x1b[?25l\x1b[2J{self}\x1b[H");
+        print!("\x1b[2J{self}\x1b[H");
         io::stdout().flush().expect("can't flush buffer");
     }
 
