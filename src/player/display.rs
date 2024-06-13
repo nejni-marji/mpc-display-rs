@@ -107,7 +107,6 @@ impl Display {
             // prepare channel
             let (tx, rx) = mpsc::channel();
 
-            // TODO: time does not pass for delay thread when in helptext
             if self.signal == Signal::Normal {
                 // spawn thread if we need it
                 if self.data.state == State::Play {
@@ -177,14 +176,14 @@ impl Display {
         dprintln!("[subsystems: {subsystems:?}]");
         for i in subsystems {
             let data = &mut self.data;
+            // always update status, delay thread requires it
+            data.update_status(&self.client);
             match i {
                 Subsystem::Player => {
-                    data.update_status(&self.client);
                     data.update_song(&self.client);
                     data.update_sticker(&self.client);
                 }
                 Subsystem::Mixer | Subsystem::Options => {
-                    data.update_status(&self.client);
                 }
                 Subsystem::Queue => {
                     data.update_playlist(&self.client);
@@ -193,7 +192,6 @@ impl Display {
                 }
                 Subsystem::Sticker => {
                     data.update_sticker(&self.client);
-                    data.update_status(&self.client);
                 }
                 Subsystem::Subscription => {
                     // get channel list
@@ -241,7 +239,8 @@ impl Display {
   \x1b[1mF\x1b[0m .........shuffle (reorders queue in-place)
   \x1b[1m[, ]\x1b[0m ......adjust current track rating
   \x1b[1mM\x1b[0m .........stops playback
-  \x1b[1mxX\x1b[0m ........crossfade up/down";
+  \x1b[1mxX\x1b[0m ........crossfade up/down\
+\x1b[H";
 
         println!("{HELPTEXT}");
     }
