@@ -11,7 +11,6 @@ use terminal_size::terminal_size;
 use uuid::Uuid;
 
 #[allow(unused_imports)]
-#[cfg(debug_assertions)]
 use debug_print::{
     debug_print as dprint,
     debug_println as dprintln,
