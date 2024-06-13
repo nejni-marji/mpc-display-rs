@@ -6,7 +6,7 @@ use std::sync::{mpsc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-use mpd::{Client, Idle, Query, search::Window, Song, song::QueuePlace, State, Subsystem, Term};
+use mpd::{Client, Idle, message::Channel, Query, search::Window, Song, song::QueuePlace, State, Subsystem, Term};
 use terminal_size::terminal_size;
 use uuid::Uuid;
 
@@ -93,7 +93,7 @@ impl Display {
         #[cfg(debug_assertions)]
         let mut counter_idle = 0;
         loop {
-            // check quit status
+            // check signal status
             match self.signal {
                 Signal:: Normal => {
                 },
@@ -101,8 +101,7 @@ impl Display {
                     break
                 },
                 Signal::Help => {
-                    // TODO: actually write the helptext. probably move this to a separate function, too.
-                    println!("1: TODO HELPTEXT\n2: TODO HELPTEXT\n3: TODO HELPTEXT\n4: TODO HELPTEXT");
+                    Self::helptext();
 
                     // wait for absence of help channel
                     'help: loop {
@@ -111,15 +110,16 @@ impl Display {
                             .expect("can't lock client");
                         let _ = conn.wait(&[Subsystem::Subscription])
                             .unwrap_or_default();
+                        dprintln!("display: getting channels");
                         let channels = conn.channels().unwrap_or_default();
                         drop(conn);
 
-                        let help_chan = mpd::message::Channel::new(
+                        let help_chan = Channel::new(
                             format!("help_{}",
                                 self.uuid.simple()).as_str()
                         ).expect("can't make help channel");
 
-                        let quit_chan = mpd::message::Channel::new(
+                        let quit_chan = Channel::new(
                             format!("quit_{}",
                                 self.uuid.simple()).as_str()
                         ).expect("can't make quit channel");
@@ -129,6 +129,14 @@ impl Display {
                             self.signal = Signal::Quit;
                             break 'help
                         } else if !channels.contains(&help_chan) {
+                            // TODO: optimize this
+                            // when we come back from helptext, update everything and redraw it, because things could have changed while we were waiting.
+                            // self.data.update_status(&self.client);
+                            // self.data.update_song(&self.client);
+                            // self.data.update_playlist(&self.client);
+                            // self.data.update_sticker(&self.client);
+                            self.data.display();
+
                             self.signal = Signal::Normal;
                             break 'help
                         }
@@ -230,23 +238,26 @@ impl Display {
                     drop(conn);
 
                     // check for quit channel
-                    for i in &channels {
-                        if *i == mpd::message::Channel::new(
+                    if channels.contains(&Channel::new(
                             format!("help_{}",
                                 self.uuid.simple()).as_str()
-                        ).expect("can't make help channel") {
-                            self.signal = Signal::Help;
-                        } else if *i == mpd::message::Channel::new(
+                    ).expect("can't make help channel")) {
+                        self.signal = Signal::Help;
+                    } else if channels.contains(&Channel::new(
                             format!("quit_{}",
                                 self.uuid.simple()).as_str()
-                        ).expect("can't make quit channel") {
-                            self.signal = Signal::Quit;
-                        }
+                    ).expect("can't make quit channel")) {
+                        self.signal = Signal::Quit;
                     }
                 }
                 _ => {}
             }
         }
+    }
+
+    fn helptext() {
+        // TODO: actually write the helptext. probably move this to a separate function, too.
+        println!("1: TODO HELPTEXT\n2: TODO HELPTEXT\n3: TODO HELPTEXT\n4: TODO HELPTEXT");
     }
 }
 

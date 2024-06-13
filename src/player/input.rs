@@ -7,7 +7,8 @@ use std::time::Duration;
 use termios::{Termios, TCSANOW, ECHO, ICANON, tcsetattr};
 use mpd::{
     Client,
-    State
+    message::Channel,
+    State,
 };
 use uuid::Uuid;
 
@@ -49,50 +50,33 @@ impl KeyHandler {
         loop {
             let ch = getch().unwrap_or_default();
             // returns "quit"
-            if self.handle_key(ch) {
+            let mut conn = self.client.lock().expect("can't get command connection");
+            if self.handle_key(ch, &mut conn) {
                 break
             }
         }
     }
 
     // huge match statement to handle keyboard input. returns "quit" param.
-    #[allow(clippy::too_many_lines)]
-    fn handle_key(&self, ch: char) -> bool {
-        let mut conn = self.client.lock().expect("can't get command connection");
+    fn handle_key(&self, ch: char, conn: &mut Client) -> bool {
         match ch {
             // helptext
             '/' | '?' => {
-                let help_chan = mpd::message::Channel::new(
-                    format!("help_{}",
-                        self.uuid.simple()).as_str()
-                ).expect("can't make help channel");
-
-                #[allow(clippy::if_not_else)]
-                if !conn.channels().unwrap_or_default().contains(&help_chan) {
-                    dprintln!("input: +help_chan");
-                    let _ = conn.subscribe(help_chan);
-                } else {
-                    dprintln!("input: -help_chan");
-                    let _ = conn.unsubscribe(help_chan);
-
-                    // toggle temp channel to force idle break
-                    let _ = conn.subscribe(
-                        mpd::message::Channel::new("tmp")
-                        .expect("can't make temp channel")
-                    );
-                    let _ = conn.unsubscribe(
-                        mpd::message::Channel::new("tmp")
-                        .expect("can't make temp channel")
-                    );
-                }
-
+                return self.handle_help(conn);
             }
             // quit
-            'q' => {
+            'q' | 'Q' => {
+
+                let _ = conn.unsubscribe(
+                    Channel::new(format!("help_{}",
+                        self.uuid.simple()).as_str()
+                    ).expect("can't make help channel"));
+
+
+                dprintln!("input: quitting!");
                 let _ = conn.subscribe(
-                    mpd::message::Channel::new(
-                        format!("quit_{}",
-                            self.uuid.simple()).as_str()
+                    Channel::new(format!("quit_{}",
+                        self.uuid.simple()).as_str()
                     ).expect("can't make quit channel")
                 );
                 return true;
@@ -150,10 +134,10 @@ impl KeyHandler {
 
             // ratings
             '[' | '{' => {
-                Self::inc_rating(-1, &mut conn);
+                Self::inc_rating(-1, conn);
                 }
             ']' | '}' => {
-                Self::inc_rating(1, &mut conn);
+                Self::inc_rating(1, conn);
             }
 
             // repeat
@@ -207,7 +191,50 @@ impl KeyHandler {
                 println!("getch(): {ch}");
             }
         }
-        drop(conn);
+        false
+    }
+
+    fn handle_help(&self, conn: &mut Client) -> bool {
+        // make help channel
+        let help_chan = Channel::new(format!("help_{}",
+            self.uuid.simple()).as_str()
+        ).expect("can't make help channel");
+
+        #[allow(clippy::if_not_else)]
+        if !conn.channels().unwrap_or_default().contains(&help_chan) {
+
+            // if help_chan isn't in the list, subscribe to it
+            dprintln!("input: +help_chan");
+            let _ = conn.subscribe(help_chan);
+
+            // use our own getch() loop, to prevent sending commands to the server during helptext
+            loop {
+                let ch = getch().unwrap_or_default();
+                // allow esc to close helptext by remapping it
+                let ch = if ch == '\x1b' { '?' } else { ch };
+                match ch {
+                    // allowed inputs during helptext: esc, help, quit
+                    '/' | '?' | 'H' | 'q' | 'Q' => {
+                        return self.handle_key(ch, conn);
+                    },
+                    _ => {}
+                }
+            }
+
+        // if it is, then unsubscribe
+        } else {
+            dprintln!("input: -help_chan");
+            let _ = conn.unsubscribe(help_chan);
+
+            // toggle temp channel to force idle break
+            let _ = conn.subscribe(
+                Channel::new("tmp").expect("can't make temp channel")
+            );
+            let _ = conn.unsubscribe(
+                Channel::new("tmp").expect("can't make temp channel")
+            );
+        }
+
         false
     }
 
