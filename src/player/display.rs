@@ -20,7 +20,7 @@ use debug_print::{
 
 const UNKNOWN: &str = "?";
 
-#[derive(Debug,Default,PartialEq)]
+#[derive(Clone,Copy,Debug,Default,PartialEq)]
 enum Signal {
     #[default]
     Normal,
@@ -202,24 +202,25 @@ impl Display {
                     dprintln!("{channels:?}");
                     drop(conn);
 
-                    // check for channel and signal
-                    // TODO: optimize this branched assignment
-                    if channels.contains(&Channel::new(
+                    // change signal based on channel/signal state
+                    self.signal = if channels.contains(&Channel::new(
                         format!("help_{}", self.uuid.simple()).as_str()
                     ).expect("can't make help channel")) {
 
-                        self.signal = Signal::Help;
+                        Signal::Help
 
                     } else if self.signal == Signal::Help {
 
-                        self.signal = Signal::Normal;
+                        Signal::Normal
 
                     } else if channels.contains(&Channel::new(
                         format!("quit_{}", self.uuid.simple()).as_str()
                     ).expect("can't make quit channel")) {
 
-                        self.signal = Signal::Quit;
+                        Signal::Quit
 
+                    } else {
+                        self.signal
                     }
                 }
                 _ => {}
@@ -228,7 +229,7 @@ impl Display {
     }
 
     fn helptext() {
-        // TODO: actually write the helptext. probably move this to a separate function, too.
+        // TODO: actually write the helptext
         println!("1: TODO HELPTEXT\n2: TODO HELPTEXT\n3: TODO HELPTEXT\n4: TODO HELPTEXT");
     }
 }
