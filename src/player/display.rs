@@ -231,13 +231,13 @@ impl Display {
         // TODO: make this... not a const? and dynamically format the text?
         const HELPTEXT: &str = "\x1b[2J
   \x1b[1mh, ?\x1b[0m ......show help text
-  \x1b[1mspace \x1b[0m ....pause/play
+  \x1b[1mspace\x1b[0m .....pause/play
   \x1b[1mpk, nj\x1b[0m ....prev/next track
   \x1b[1mH, L\x1b[0m ......seek back/ahead
   \x1b[1m+0, -9\x1b[0m ....volume up/down
   \x1b[1mERSC\x1b[0m ......repeat, random, single, consume
   \x1b[1mF\x1b[0m .........shuffle (reorders queue in-place)
-  \x1b[1m[, ]\x1b[0m ......adjust current track rating
+  \x1b[1m{, }\x1b[0m ......adjust current track rating
   \x1b[1mM\x1b[0m .........stops playback
   \x1b[1mxX\x1b[0m ........crossfade up/down\
 \x1b[H";

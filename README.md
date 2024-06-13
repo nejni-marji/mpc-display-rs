@@ -5,23 +5,23 @@ This is a client for Music Player Daemon.
 
 ## Controls
 
-* `h`/`?`/`/` - show help text
+* `h`, `?` - show help text
 
 * `space` - pause/play
 
-* `M` - stops playback
+* `pk`, `nj` - prev/next track
 
-* `p`/`k`, `n`/`j` - prev/next track
+* `H`, `L` - seek back/ahead
 
-* `=`/`+`/`0`/`)`, `-`/`_`/`9`/`(` - volume up/down
+* `+=0)`, `-_9(` - volume up/down
 
-* `H`/`L` - seek back/ahead
-
-* `E`/`R`/`S`/`C` - repeat, random, single, consume
+* `ERSC` - repeat, random, single, consume
 
 * `F` - shuffle (reorders queue in-place)
 
-* `[`/`{`, `]`/`}` - adjust current track rating
+* `{`, `}` - adjust current track rating
+
+* `M` - stops playback
 
 * `x`/`X` - crossfade up/down
 

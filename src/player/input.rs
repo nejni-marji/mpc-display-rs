@@ -133,10 +133,10 @@ impl KeyHandler {
             }
 
             // ratings
-            '[' | '{' => {
+            '{' => {
                 Self::inc_rating(-1, conn);
                 }
-            ']' | '}' => {
+            '}' => {
                 Self::inc_rating(1, conn);
             }
 
