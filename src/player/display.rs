@@ -449,7 +449,7 @@ impl MusicData {
     // TODO: clean this up after it's done. this is probably full of other bugs, lol!
     #[allow(clippy::let_and_return)]
     fn print_queue(&self, height: u32, width: u32, header_height: u32) -> String {
-        // get some other variables
+        // get size of queue and current song index
         let queue_size: u32 = self.queue.len().try_into().unwrap_or(0);
         let song_pos = self.song.place.map_or_else(
             || 0,
@@ -471,7 +471,7 @@ impl MusicData {
             })
         .collect::<Vec<_>>();
 
-        // prepare to crop the queue
+        // get variables to filter the queue
         let head = Self::get_centered_index(
             height-header_height,
             queue_size,
@@ -489,21 +489,20 @@ impl MusicData {
         dprintln!("tail: {tail}");
         dprintln!("len: {}", queue.len());
 
-        // first cropped queue
+        // actually filter the queue
         let queue = queue.get(head as usize..tail as usize)
             .unwrap_or_default();
 
-        // textual queue
+        // string-ify filtered queue
         let queue = queue.join("\n");
 
-        // wrapped queue
+        // wrap the queue
         let opt = textwrap::Options::new(
             width.try_into().expect("nothing should be that big")
         );
         let queue = textwrap::wrap(&queue, opt);
 
-        // CODE REUSE
-        // get some new variables
+        // (again) get size of queue and current song index
         let queue_size: u32 = queue.len().try_into().expect("nothing should be that big");
         let mut song_pos: Option<u32> = None;
         for (i, v) in queue.iter().enumerate() {
@@ -513,7 +512,7 @@ impl MusicData {
         }
         let song_pos = song_pos.unwrap_or(0);
 
-        // prepare to crop the queue
+        // (again) get variables to filter the queue
         let head = Self::get_centered_index(
             height-header_height,
             queue_size,
@@ -531,10 +530,9 @@ impl MusicData {
         dprintln!("tail: {tail}");
         dprintln!("len: {}", queue.len());
 
-        // second cropped queue
+        // (again) actually filter the queue
         let queue = queue.get(head as usize..tail as usize)
             .unwrap_or_default();
-        // END CODE REUSE
 
         // create padding to add later
         let len = queue.len().try_into().unwrap_or(0);
@@ -547,7 +545,8 @@ impl MusicData {
         let diff = diff.try_into().unwrap_or(0);
         let queue_padding = vec![""; diff].join("\n");
 
-        // join queue and add padding
+        // (again) string-ify filtered queue
+        // and add padding to queue
         let queue = queue.join("\n")
             + &queue_padding;
 
