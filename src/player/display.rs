@@ -95,67 +95,29 @@ impl Display {
         loop {
             // check signal status
             match self.signal {
-                Signal:: Normal => {
-                },
+                Signal:: Normal => {},
                 Signal::Quit => {
                     break
                 },
                 Signal::Help => {
                     Self::helptext();
-
-                    // wait for absence of help channel
-                    'help: loop {
-                        // use client to get channels
-                        let mut conn = self.client.lock()
-                            .expect("can't lock client");
-                        let _ = conn.wait(&[Subsystem::Subscription])
-                            .unwrap_or_default();
-                        dprintln!("display: getting channels");
-                        let channels = conn.channels().unwrap_or_default();
-                        drop(conn);
-
-                        let help_chan = Channel::new(
-                            format!("help_{}",
-                                self.uuid.simple()).as_str()
-                        ).expect("can't make help channel");
-
-                        let quit_chan = Channel::new(
-                            format!("quit_{}",
-                                self.uuid.simple()).as_str()
-                        ).expect("can't make quit channel");
-
-                        // if help channel is gone
-                        if channels.contains(&quit_chan) {
-                            self.signal = Signal::Quit;
-                            break 'help
-                        } else if !channels.contains(&help_chan) {
-                            // TODO: optimize this
-                            // when we come back from helptext, update everything and redraw it, because things could have changed while we were waiting.
-                            // self.data.update_status(&self.client);
-                            // self.data.update_song(&self.client);
-                            // self.data.update_playlist(&self.client);
-                            // self.data.update_sticker(&self.client);
-                            self.data.display();
-
-                            self.signal = Signal::Normal;
-                            break 'help
-                        }
-                    }
                 },
             }
 
             // prepare channel
             let (tx, rx) = mpsc::channel();
 
-            // spawn thread if we need it
-            if self.data.state == State::Play {
-                // clone data for thread
-                let data = self.data.clone();
+            if self.signal == Signal::Normal {
+                // spawn thread if we need it
+                if self.data.state == State::Play {
+                    // clone data for thread
+                    let data = self.data.clone();
 
-                // assign thread handle to external variable
-                _ = thread::spawn(move || {
-                    Self::delay_thread(&rx, data);
-                });
+                    // assign thread handle to external variable
+                    _ = thread::spawn(move || {
+                        Self::delay_thread(&rx, data);
+                    });
+                }
             }
 
             // wait for idle, then print
@@ -163,8 +125,11 @@ impl Display {
             #[cfg(debug_assertions)] {
                 counter_idle += 1;
             }
-            dprintln!("[idle: {counter_idle}]");
-            self.data.display();
+
+            if self.signal == Signal::Normal {
+                dprintln!("[idle: {counter_idle}]");
+                self.data.display();
+            }
 
             // send signal to kill thread
             let _ = tx.send(true);
@@ -237,17 +202,24 @@ impl Display {
                     dprintln!("{channels:?}");
                     drop(conn);
 
-                    // check for quit channel
+                    // check for channel and signal
+                    // TODO: optimize this branched assignment
                     if channels.contains(&Channel::new(
-                            format!("help_{}",
-                                self.uuid.simple()).as_str()
+                        format!("help_{}", self.uuid.simple()).as_str()
                     ).expect("can't make help channel")) {
+
                         self.signal = Signal::Help;
+
+                    } else if self.signal == Signal::Help {
+
+                        self.signal = Signal::Normal;
+
                     } else if channels.contains(&Channel::new(
-                            format!("quit_{}",
-                                self.uuid.simple()).as_str()
+                        format!("quit_{}", self.uuid.simple()).as_str()
                     ).expect("can't make quit channel")) {
+
                         self.signal = Signal::Quit;
+
                     }
                 }
                 _ => {}
