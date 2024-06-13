@@ -200,10 +200,21 @@ impl KeyHandler {
             self.uuid.simple()).as_str()
         ).expect("can't make help channel");
 
-        #[allow(clippy::if_not_else)]
-        if !conn.channels().unwrap_or_default().contains(&help_chan) {
+        // if help is in channels, unsubscribe
+        if conn.channels().unwrap_or_default().contains(&help_chan) {
+            dprintln!("input: -help_chan");
+            let _ = conn.unsubscribe(help_chan);
 
-            // if help_chan isn't in the list, subscribe to it
+            // toggle temp channel to force idle break
+            let _ = conn.subscribe(
+                Channel::new("tmp").expect("can't make temp channel")
+            );
+            let _ = conn.unsubscribe(
+                Channel::new("tmp").expect("can't make temp channel")
+            );
+
+        // otherwise, subscribe to help channel and make a fake getch() loop
+        } else {
             dprintln!("input: +help_chan");
             let _ = conn.subscribe(help_chan);
 
@@ -220,19 +231,6 @@ impl KeyHandler {
                     _ => {}
                 }
             }
-
-        // if it is, then unsubscribe
-        } else {
-            dprintln!("input: -help_chan");
-            let _ = conn.unsubscribe(help_chan);
-
-            // toggle temp channel to force idle break
-            let _ = conn.subscribe(
-                Channel::new("tmp").expect("can't make temp channel")
-            );
-            let _ = conn.unsubscribe(
-                Channel::new("tmp").expect("can't make temp channel")
-            );
         }
 
         false
