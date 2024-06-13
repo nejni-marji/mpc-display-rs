@@ -578,7 +578,7 @@ impl MusicData {
             tags.push(Self::get_metadata(song, &v).unwrap_or_else(|| UNKNOWN.into()));
         }
 
-        let songtext = tags.join(" * ");
+        let songtext = tags.join("  *  ");
 
         format!("{ansi1}{curr} {index:>padding$}  {songtext}{ansi2}")
     }
