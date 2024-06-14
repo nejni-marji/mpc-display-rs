@@ -43,6 +43,7 @@ struct MusicData {
     verbose: bool,
     verbose_tags: Vec<bool>,
     show_ratings: bool,
+    easter: bool,
     prev_album: Option<String>,
     prev_album_total: Option<u32>,
     // music data
@@ -69,11 +70,11 @@ struct MusicData {
 impl Display {
     #[must_use]
     pub fn new(client: Client, format: Vec<String>,
-        uuid: Uuid, verbose: bool, ratings: bool,) -> Self
+        uuid: Uuid, verbose: bool, ratings: bool, easter: bool) -> Self
     {
         Self {
             client: Mutex::new(client),
-            data: MusicData::new(format, verbose, ratings),
+            data: MusicData::new(format, verbose, ratings, easter),
             signal: Signal::default(),
             uuid,
         }
@@ -252,12 +253,13 @@ impl Display {
 impl MusicData {
     #[must_use]
     pub fn new(format: Vec<String>,
-        verbose: bool, show_ratings: bool) -> Self
+        verbose: bool, show_ratings: bool, easter: bool) -> Self
     {
         Self {
             format,
             verbose,
             show_ratings,
+            easter,
             ..Self::default()
         }
     }
@@ -398,9 +400,6 @@ impl MusicData {
         const COL_PAUSE  : &str = "\x1b[31m";    // red
         const COL_END    : &str = "\x1b[0m";     // reset
 
-        #[inline]
-        fn fmt_r(r: &str) -> String { format!("rating: {r}") }
-
         // start defining some variables
         let artist = self.artist
             .clone().unwrap_or_else(|| UNKNOWN.into());
@@ -454,33 +453,7 @@ impl MusicData {
             _ =>UNKNOWN.into()
         };
 
-        let rating = if self.show_ratings {
-            self.rating
-            .clone().map_or_else(
-                || " ? ? ? ? ?".into(),
-                |r| {
-                    const STARS: [&str; 3] = ["<3", "< ", " ."];
-
-                    match r.parse::<usize>() {
-                        Err(_) => fmt_r(&r),
-                        Ok(n) => {
-                            if n > 10 {
-                                return fmt_r(&r);
-                            }
-                            let (a, b) = (n/2, n%2);
-                            let c = std::cmp::max(0, 5-a-b);
-
-                            format!("{}{}{}",
-                                STARS[0].repeat(a),
-                                STARS[1].repeat(b),
-                                STARS[2].repeat(c),
-                            )
-                        }
-                    }
-                })
-        } else {
-            String::new()
-        };
+        let rating = self.get_rating();
 
         let ersc_str = self.get_ersc();
         let volume = self.volume;
@@ -500,6 +473,49 @@ impl MusicData {
         format!(
             "{COL_ARTIST}{artist}{COL_END} * {COL_TITLE}{title}{COL_END}\n({COL_TRACK}#{album_track}/{album_total}{COL_END}) {COL_ALBUM}{album}{COL_END} {COL_DATE}({date}){COL_END}\n{col_state}{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%{COL_END}  {COL_RATING}{rating}{COL_END}\n{col_state}{ersc_str}, {volume}%{crossfade}{COL_END}"
         )
+    }
+
+    fn get_rating(&self) -> String {
+        fn fmt_r(r: &str) -> String { format!("rating: {r}") }
+
+        if self.show_ratings && !self.easter {
+            self.rating
+                .clone().map_or_else(
+                    || " ? ? ? ? ?".into(),
+                    |r| {
+                        const STARS: [&str; 3] = ["<3", "< ", " ."];
+
+                        match r.parse::<usize>() {
+                            Err(_) => fmt_r(&r),
+                            Ok(n) => {
+                                if n > 10 {
+                                    return fmt_r(&r);
+                                }
+                                let (a, b) = (n/2, n%2);
+                                let c = std::cmp::max(0, 5-a-b);
+
+                                format!("{}{}{}",
+                                    STARS[0].repeat(a),
+                                    STARS[1].repeat(b),
+                                    STARS[2].repeat(c),
+                                )
+                            }
+                        }
+                    })
+        } else if self.easter {
+            const CHRISTGAU: [&str; 11] = ["🦃", "💣" , " ✂️", "😐",
+            "⭐", "⭐ ⭐", "⭐ ⭐ ⭐", "B+", "A-", "A", "A+"];
+            format!("\x1b[40m {} \x1b[0m", CHRISTGAU[
+                self.rating
+                .clone()
+                .unwrap_or_default()
+                .parse::<usize>()
+                .unwrap_or_default()
+                .clamp(0, 11)
+            ])
+        } else {
+            String::new()
+        }
     }
 
     #[allow(clippy::let_and_return)]

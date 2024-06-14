@@ -15,7 +15,7 @@ pub struct Player;
 
 impl Player {
     pub fn init(address: String, format: Vec<String>,
-        verbose: bool, ratings: bool)
+        verbose: bool, ratings: bool, easter: bool)
     {
         // generate UUID for proper quit handling
         let uuid = Uuid::new_v4();
@@ -28,7 +28,7 @@ impl Player {
         let display_client = Client::connect(&address)
             .expect("can't connect to client");
         let mut display = Display::new(display_client, format,
-            uuid, verbose, ratings);
+            uuid, verbose, ratings, easter);
         let t = thread::spawn(move || { display.init() });
 
         // initialize input

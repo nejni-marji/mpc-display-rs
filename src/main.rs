@@ -41,7 +41,7 @@ fn main() {
         )
     };
 
-    Player::init(address, format, args.verbose, !args.no_ratings);
+    Player::init(address, format, args.verbose, !args.no_ratings, args.easter);
 }
 
 /// Displays the current state of an MPD server.
@@ -77,4 +77,8 @@ struct Args {
     /// Equivalent to '--format artist,album,title'
     #[arg(short, long)]
     reverse: bool,
+
+    /// Easter eggs?
+    #[arg(long = "#$%!")]
+    easter: bool,
 }
