@@ -183,8 +183,6 @@ impl Display {
                     data.update_song(&self.client);
                     data.update_sticker(&self.client);
                 }
-                Subsystem::Mixer | Subsystem::Options => {
-                }
                 Subsystem::Queue => {
                     data.update_playlist(&self.client);
                     data.update_song(&self.client);
