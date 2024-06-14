@@ -41,12 +41,13 @@ fn main() {
         )
     };
 
-    Player::init(address, format, args.verbose);
+    Player::init(address, format, args.verbose, !args.no_ratings);
 }
 
 /// Displays the current state of an MPD server.
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
+#[allow(clippy::struct_excessive_bools)]
 struct Args {
 
     /// Connect to server at address <HOST>
@@ -64,6 +65,10 @@ struct Args {
     /// Show redundant format fields
     #[arg(short, long)]
     verbose: bool,
+
+    /// Hide ratings
+    #[arg(short = 'R', long = "no-ratings")]
+    no_ratings: bool,
 
     /// Equivalent to '--format title'
     #[arg(short, long)]

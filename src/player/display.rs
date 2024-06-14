@@ -42,6 +42,7 @@ struct MusicData {
     format: Vec<String>,
     verbose: bool,
     verbose_tags: Vec<bool>,
+    show_ratings: bool,
     prev_album: Option<String>,
     prev_album_total: Option<u32>,
     // music data
@@ -67,10 +68,12 @@ struct MusicData {
 
 impl Display {
     #[must_use]
-    pub fn new(client: Client, format: Vec<String>, verbose: bool, uuid: Uuid) -> Self {
+    pub fn new(client: Client, format: Vec<String>,
+        uuid: Uuid, verbose: bool, ratings: bool,) -> Self
+    {
         Self {
             client: Mutex::new(client),
-            data: MusicData::new(format, verbose),
+            data: MusicData::new(format, verbose, ratings),
             signal: Signal::default(),
             uuid,
         }
@@ -248,10 +251,13 @@ impl Display {
 
 impl MusicData {
     #[must_use]
-    pub fn new(format: Vec<String>, verbose: bool) -> Self {
+    pub fn new(format: Vec<String>,
+        verbose: bool, show_ratings: bool) -> Self
+    {
         Self {
             format,
             verbose,
+            show_ratings,
             ..Self::default()
         }
     }
@@ -448,7 +454,8 @@ impl MusicData {
             _ =>UNKNOWN.into()
         };
 
-        let rating = self.rating
+        let rating = if self.show_ratings {
+            self.rating
             .clone().map_or_else(
                 || " ? ? ? ? ?".into(),
                 |r| {
@@ -470,7 +477,10 @@ impl MusicData {
                             )
                         }
                     }
-                });
+                })
+        } else {
+            String::new()
+        };
 
         let ersc_str = self.get_ersc();
         let volume = self.volume;
