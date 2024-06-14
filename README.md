@@ -13,7 +13,7 @@ This is a client for Music Player Daemon.
 
 * `H`, `L` - seek back/ahead
 
-* `+=0)`, `-_9(` - volume up/down
+* `+0`, `-9` - volume up/down
 
 * `ERSC` - repeat, random, single, consume
 
@@ -23,7 +23,7 @@ This is a client for Music Player Daemon.
 
 * `M` - stops playback
 
-* `x`/`X` - crossfade up/down
+* `x`, `X` - crossfade up/down
 
 ## Usage
 

@@ -43,6 +43,7 @@ impl KeyHandler {
                     .lock()
                     .expect("can't get command connection")
                     .status()
+                    // TODO: why is this failing?
                     .expect("failed keepalive!");
                 }
         });

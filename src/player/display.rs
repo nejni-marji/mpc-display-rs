@@ -239,7 +239,9 @@ impl Display {
   \x1b[1mF\x1b[0m .........shuffle (reorders queue in-place)
   \x1b[1m{, }\x1b[0m ......adjust current track rating
   \x1b[1mM\x1b[0m .........stops playback
-  \x1b[1mxX\x1b[0m ........crossfade up/down\
+  \x1b[1mx, X\x1b[0m ......crossfade up/down
+
+  \x1b[1;35m~made by aurora~\x1b[0m\
 \x1b[H";
 
         println!("{HELPTEXT}");
