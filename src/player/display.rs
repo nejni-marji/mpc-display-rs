@@ -114,12 +114,10 @@ impl Display {
             if self.signal == Signal::Normal {
                 // spawn thread if we need it
                 if self.data.state == State::Play {
-                    // clone data for thread
-                    let data = self.data.clone();
-
                     // assign thread handle to external variable
-                    _ = thread::spawn(move || {
-                        Self::delay_thread(&rx, data);
+                    _ = thread::spawn({
+                        let data = self.data.clone();
+                        move || Self::delay_thread(&rx, data)
                     });
                 }
             }
