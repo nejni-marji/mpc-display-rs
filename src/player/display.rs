@@ -39,6 +39,7 @@ pub struct Display {
 #[derive(Debug,Default,Clone)]
 struct MusicData {
     // non-music data
+    // TODO: move these to a new type
     format: Vec<String>,
     verbose: bool,
     verbose_tags: Vec<bool>,
