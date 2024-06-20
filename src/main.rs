@@ -44,17 +44,17 @@ fn main() {
     Player::init(address, format, args.verbose, !args.no_ratings, args.easter);
 }
 
-/// Displays the current state of an MPD server.
+/// Lightweight text-based MPD client
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 #[allow(clippy::struct_excessive_bools)]
 struct Args {
 
-    /// Connect to server at address <HOST>
+    /// Connect to server at address <HOST> (or $MPD_HOST)
     #[arg(short = 'H', long)]
     host: Option<String>,
 
-    /// Connect to server on port <PORT>
+    /// Connect to server on port <PORT> (or $MPD_PORT)
     #[arg(short = 'P', long)]
     port: Option<u16>,
 
