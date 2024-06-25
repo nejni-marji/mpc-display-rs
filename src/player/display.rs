@@ -1,3 +1,6 @@
+pub mod options;
+use options::MusicOpts;
+
 use std::borrow::Cow::Borrowed;
 use std::fmt;
 use std::io;
@@ -41,10 +44,8 @@ struct MusicData {
     // non-music data
     // TODO: move these to a new type
     format: Vec<String>,
-    verbose: bool,
+    options: MusicOpts,
     verbose_tags: Vec<bool>,
-    show_ratings: bool,
-    easter: bool,
     prev_album: Option<String>,
     prev_album_total: Option<u32>,
     // music data
@@ -71,11 +72,11 @@ struct MusicData {
 impl Display {
     #[must_use]
     pub fn new(client: Client, format: Vec<String>,
-        uuid: Uuid, verbose: bool, ratings: bool, easter: bool) -> Self
+        uuid: Uuid, options: MusicOpts) -> Self
     {
         Self {
             client: Mutex::new(client),
-            data: MusicData::new(format, verbose, ratings, easter),
+            data: MusicData::new(format, options),
             signal: Signal::default(),
             uuid,
         }
@@ -251,14 +252,11 @@ impl Display {
 
 impl MusicData {
     #[must_use]
-    pub fn new(format: Vec<String>,
-        verbose: bool, show_ratings: bool, easter: bool) -> Self
+    pub fn new(format: Vec<String>, options: MusicOpts) -> Self
     {
         Self {
             format,
-            verbose,
-            show_ratings,
-            easter,
+            options,
             ..Self::default()
         }
     }
@@ -338,7 +336,7 @@ impl MusicData {
         drop(conn);
 
         // default case
-        if self.verbose {
+        if self.options.verbose {
             self.verbose_tags = Vec::new();
         } else {
             // check for repeated values per tag
@@ -477,7 +475,7 @@ impl MusicData {
     fn get_rating(&self) -> String {
         fn fmt_r(r: &str) -> String { format!("rating: {r}") }
 
-        if self.show_ratings && !self.easter {
+        if self.options.ratings && !self.options.easter {
             self.rating
                 .clone().map_or_else(
                     || " ? ? ? ? ?".into(),
@@ -501,7 +499,7 @@ impl MusicData {
                             }
                         }
                     })
-        } else if self.easter {
+        } else if self.options.easter {
             const CHRISTGAU: [&str; 11] = ["🦃", "💣" , " ✂️", "😐",
             "⭐", "⭐ ⭐", "⭐ ⭐ ⭐", "B+", "A-", "A", "A+"];
             format!("\x1b[40m {} \x1b[0m", CHRISTGAU[
@@ -632,7 +630,7 @@ impl MusicData {
         // get song text
         let mut tags = Vec::new();
         for (i, v) in self.format.clone().into_iter().enumerate() {
-            if !self.verbose && *self.verbose_tags.get(i).unwrap_or(&false) {
+            if !self.options.verbose && *self.verbose_tags.get(i).unwrap_or(&false) {
                 continue;
             }
             tags.push(Self::get_metadata(song, &v).unwrap_or_else(|| UNKNOWN.into()));

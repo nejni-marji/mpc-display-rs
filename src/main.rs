@@ -41,13 +41,20 @@ fn main() {
         )
     };
 
-    Player::init(address, format, args.verbose, !args.no_ratings, args.easter);
+    let options = player::MusicOpts {
+        verbose: args.verbose,
+        ratings: !args.no_ratings,
+        easter: args.easter,
+    };
+
+    Player::init(address, format, options);
 }
 
 /// Lightweight text-based MPD client
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 #[allow(clippy::struct_excessive_bools)]
+// allow okay because it's necessary for clap, and gets typed later
 struct Args {
 
     /// Connect to server at address <HOST> (or $MPD_HOST)
