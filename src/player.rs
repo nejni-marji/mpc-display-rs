@@ -42,7 +42,6 @@ impl Player {
         let _ = display.join();
         let _ = input.join();
 
-
         // reset terminal before exit
         print!("\x1b[?25h\x1b[2J");
         io::stdout().flush().expect("can't flush buffer");
