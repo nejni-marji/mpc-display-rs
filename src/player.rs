@@ -6,8 +6,6 @@ pub use display::options::MusicOpts;
 use display::Display;
 use input::KeyHandler;
 
-use std::io;
-use std::io::Write;
 use std::thread;
 
 use mpd::Client;
@@ -20,10 +18,6 @@ impl Player {
     {
         // generate UUID for proper quit handling
         let uuid = Uuid::new_v4();
-
-        // hide cursor for this program
-        print!("\x1b[?25l");
-        io::stdout().flush().expect("can't flush buffer");
 
         // initialize display
         let display_client = Client::connect(&address)
@@ -41,9 +35,5 @@ impl Player {
         // join threads and check for panics
         let _ = display.join();
         let _ = input.join();
-
-        // reset terminal before exit
-        print!("\x1b[?25h\x1b[2J");
-        io::stdout().flush().expect("can't flush buffer");
     }
 }

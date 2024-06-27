@@ -89,7 +89,15 @@ impl Display {
         data.update_playlist(&self.client);
         data.update_sticker(&self.client);
 
+        // hide cursor for this program
+        print!("\x1b[?25l");
+        io::stdout().flush().expect("can't flush buffer");
+
         self.display();
+
+        // reset terminal before exit
+        print!("\x1b[?25h\x1b[2J");
+        io::stdout().flush().expect("can't flush buffer");
     }
 
     pub fn display(&mut self) {
