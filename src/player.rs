@@ -30,16 +30,18 @@ impl Player {
             .expect("can't connect to client");
         let mut display = Display::new(display_client, format,
             uuid, options);
-        let t = thread::spawn(move || { display.init() });
+        let display = thread::spawn(move || { display.init() });
 
         // initialize input
-        let parser_client = Client::connect(address)
+        let input_client = Client::connect(address)
             .expect("can't connect to client");
-        let mut parser = KeyHandler::new(parser_client, uuid);
-        parser.init();
+        let mut input = KeyHandler::new(input_client, uuid);
+        let input = thread::spawn(move || { input.init() });
 
-        // join display thread before exit
-        let _ = t.join();
+        // join threads and check for panics
+        let _ = display.join();
+        let _ = input.join();
+
 
         // reset terminal before exit
         print!("\x1b[?25h\x1b[2J");
