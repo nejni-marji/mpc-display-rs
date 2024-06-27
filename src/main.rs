@@ -54,7 +54,9 @@ fn main() {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 #[allow(clippy::struct_excessive_bools)]
-// allow okay because it's necessary for clap, and gets typed later
+// allow because it's necessary for clap, and gets typed later
+#[allow(clippy::doc_markdown)]
+// allow because this is not docs
 struct Args {
 
     /// Connect to server at address <HOST> (or $MPD_HOST)
