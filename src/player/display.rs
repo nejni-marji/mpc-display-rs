@@ -36,6 +36,7 @@ pub struct Display {
     client: Mutex<Client>,
     data: MusicData,
     signal: Signal,
+    exitcode: i32,
     uuid: Uuid,
 }
 
@@ -78,6 +79,7 @@ impl Display {
             client: Mutex::new(client),
             data: MusicData::new(format, options),
             signal: Signal::default(),
+            exitcode: 0,
             uuid,
         }
     }
@@ -96,8 +98,14 @@ impl Display {
         self.display();
 
         // reset terminal before exit
-        print!("\x1b[?25h\x1b[2J");
+        print!("\x1b[H\x1b[?25h\x1b[2J");
         io::stdout().flush().expect("can't flush buffer");
+
+        // display error message
+        println!("mpc-display-rs: disconnected from server.");
+
+        // terminate process
+        std::process::exit(self.exitcode);
     }
 
     pub fn display(&mut self) {
@@ -182,8 +190,16 @@ impl Display {
             Subsystem::Player, Subsystem::Mixer,
             Subsystem::Options, Subsystem::Queue,
             Subsystem::Subscription, Subsystem::Sticker,
-        ]).unwrap_or_default();
+        ]);
         drop(conn);
+
+        // if wait() returns Err, it's a sign we should quit. doing so will
+        // return to the init() function, which will gracefully exit.
+        let Ok(subsystems) = subsystems else {
+            self.signal = Signal::Quit;
+            self.exitcode = 1;
+            return
+        };
 
         dprintln!("[subsystems: {subsystems:?}]");
         for i in subsystems {
