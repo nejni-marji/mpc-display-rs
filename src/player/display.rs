@@ -432,8 +432,12 @@ impl MusicData {
         let title = self.title
             .clone().unwrap_or_else(|| {
                 let file = self.song.file.clone();
+                if file.is_empty() {
+                    UNKNOWN.into()
+                } else {
                 file.split('/').last()
                     .unwrap_or(UNKNOWN).into()
+                }
             });
 
         let album_track = self.album_track.map_or_else(
