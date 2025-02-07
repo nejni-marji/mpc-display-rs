@@ -33,7 +33,7 @@ impl KeyHandler {
         }
     }
 
-    pub fn init(&mut self) {
+    pub fn init(&self) {
         // create keepalive thread
         let client = Arc::clone(&self.client);
         thread::spawn(move || {

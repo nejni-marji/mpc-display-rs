@@ -749,7 +749,7 @@ impl MusicData {
             _ => {
                 let mut value = None;
                 for (k, v) in &song.tags {
-                    if k.to_ascii_lowercase() == tag.to_ascii_lowercase() {
+                    if k.eq_ignore_ascii_case(tag) {
                         value = Some(v);
                     }
                 }

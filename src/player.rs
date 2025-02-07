@@ -29,7 +29,7 @@ impl Player {
         // initialize input
         let input_client = Client::connect(address)
             .expect("can't connect to client");
-        let mut input = KeyHandler::new(input_client, uuid);
+        let input = KeyHandler::new(input_client, uuid);
         let input = thread::spawn(move || { input.init() });
 
         // join threads and check for panics
