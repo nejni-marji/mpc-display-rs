@@ -1,10 +1,11 @@
 pub mod options;
-use options::MusicOpts;
+use options::{ExitCode, MusicOpts};
 
 use std::borrow::Cow::Borrowed;
 use std::fmt;
 use std::io;
 use std::io::Write;
+use std::process::exit;
 use std::sync::{mpsc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -36,7 +37,7 @@ pub struct Display {
     client: Mutex<Client>,
     data: MusicData,
     signal: Signal,
-    exitcode: i32,
+    exit: ExitCode,
     uuid: Uuid,
 }
 
@@ -78,7 +79,7 @@ impl Display {
             client: Mutex::new(client),
             data: MusicData::new(format, options),
             signal: Signal::default(),
-            exitcode: 0,
+            exit: ExitCode::Unknown,
             uuid,
         }
     }
@@ -100,11 +101,15 @@ impl Display {
         print!("\x1b[H\x1b[?25h\x1b[2J");
         io::stdout().flush().expect("can't flush buffer");
 
-        // display error message
-        println!("mpc-display-rs: disconnected from server.");
-
-        // terminate process
-        std::process::exit(self.exitcode);
+        exit(match self.exit {
+            ExitCode::Unknown | ExitCode::Quit => {
+                0
+            },
+            ExitCode::Error => {
+                println!("mpc-display-rs: disconnected from server.");
+                1
+            }
+        });
     }
 
     pub fn display(&mut self) {
@@ -196,7 +201,7 @@ impl Display {
         // return to the init() function, which will gracefully exit.
         let Ok(subsystems) = subsystems else {
             self.signal = Signal::Quit;
-            self.exitcode = 1;
+            self.exit = ExitCode::Error;
             return
         };
 
@@ -241,6 +246,7 @@ impl Display {
                         format!("quit_{}", self.uuid.simple()).as_str()
                     ).expect("can't make quit channel")) {
 
+                        self.exit = ExitCode::Quit;
                         Signal::Quit
 
                     } else {
@@ -430,7 +436,6 @@ impl MusicData {
                     .unwrap_or(UNKNOWN).into()
             });
 
-        // dprintln!("self.album_track: {:?}", self.album_track);
         let album_track = self.album_track.map_or_else(
             || UNKNOWN.into(),
             |s| s.to_string()
