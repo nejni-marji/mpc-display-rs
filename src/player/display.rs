@@ -259,7 +259,6 @@ impl Display {
     }
 
     fn helptext() {
-        // TODO: make this... not a const? and dynamically format the text?
         const HELPTEXT: &str = "\x1b[2J
   \x1b[1mh, ?\x1b[0m ......show help text
   \x1b[1mspace\x1b[0m .....pause/play
