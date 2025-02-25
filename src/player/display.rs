@@ -703,6 +703,7 @@ impl MusicData {
         self.time_curr = self.time_curr.map(|t| t + Duration::from_secs(n));
     }
 
+    #[allow(clippy::needless_pass_by_value)]
     fn get_album_size(client: &Mutex<Client>, album: Option<String>) -> Option<u32> {
         // build query
         let mut query = Query::new();
@@ -715,10 +716,9 @@ impl MusicData {
         drop(conn);
         // parse search
         search.map(|s| {
-            let s: Vec<Song> = s.into_iter()
-                .filter(|i| Self::get_metadata(&i, "album") == album)
-                .collect();
-            u32::try_from(s.len())
+            let s = s.into_iter()
+                .filter(|i| Self::get_metadata(i, "album") == album);
+            u32::try_from(s.count())
                 .expect("can't cast search length")
         })
     }
