@@ -706,7 +706,7 @@ impl MusicData {
     fn get_album_size(client: &Mutex<Client>, album: Option<String>) -> Option<u32> {
         // build query
         let mut query = Query::new();
-        query.and(Term::Tag(Borrowed("Album")), album?);
+        query.and(Term::Tag(Borrowed("Album")), album.clone()?);
         let window = Window::from((0,u32::from(u16::MAX)));
         // lock client and search
         let mut conn = client.lock()
@@ -714,10 +714,13 @@ impl MusicData {
         let search = conn.search(&query, window).ok();
         drop(conn);
         // parse search
-        search.map(
-            |s| u32::try_from(s.len())
-            .expect("can't cast search length")
-        )
+        search.map(|s| {
+            let s: Vec<Song> = s.into_iter()
+                .filter(|i| Self::get_metadata(&i, "album") == album)
+                .collect();
+            u32::try_from(s.len())
+                .expect("can't cast search length")
+        })
     }
 
     fn get_pretty_time(dur: Option<Duration>) -> Option<String> {
