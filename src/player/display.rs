@@ -711,11 +711,13 @@ impl MusicData {
         // lock client and search
         let mut conn = client.lock()
             .expect("can't lock client");
-        let search = conn.search(&query, window);
+        let search = conn.search(&query, window).ok();
         drop(conn);
         // parse search
-        search.ok().map(|s| u32::try_from(s.len())
-            .expect("can't cast search length"))
+        search.map(
+            |s| u32::try_from(s.len())
+            .expect("can't cast search length")
+        )
     }
 
     fn get_pretty_time(dur: Option<Duration>) -> Option<String> {
