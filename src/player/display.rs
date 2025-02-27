@@ -478,8 +478,8 @@ impl MusicData {
         const COL_RATING : &str = "\x1b[35;1m";  // bold magenta
         const COL_PLAY   : &str = "\x1b[32m";    // green
         const COL_PAUSE  : &str = "\x1b[31m";    // red
-        const COL_BAR_1  : &str = "\x1b[45m";    // magenta
-        const COL_BAR_2  : &str = "\x1b[46m";    // cyan
+        const COL_BAR_1  : &str = "\x1b[37;45m"; // magenta
+        const COL_BAR_2  : &str = "\x1b[37;46m"; // cyan
         const COL_END    : &str = "\x1b[0m";     // reset
 
         // start defining some variables
