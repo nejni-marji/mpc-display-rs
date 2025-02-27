@@ -2,6 +2,7 @@ pub mod options;
 use options::{ExitCode, MusicOpts};
 
 use std::borrow::Cow::Borrowed;
+use std::cmp::min;
 use std::fmt;
 use std::io;
 use std::io::Write;
@@ -414,6 +415,60 @@ impl MusicData {
         self.rating = rating;
     }
 
+    #[allow(clippy::cast_possible_truncation)]
+    fn progress_bar(&self, col1: &str, col2: &str, col_end: &str) -> String {
+        // get terminal width for progress bar
+        let width = match terminal_size() {
+            Some((w,_)) => u32::from(w.0),
+            None => 24,
+        };
+        dprintln!("[terminal: width {width}]");
+
+        // time_total causes div by zero if unset
+        if let Some(time_total) = self.time_total {
+
+            // calculate size of bar
+            let progress_total = width as usize;
+            let progress_full = min(
+                progress_total,
+                progress_total
+                * self.time_curr.unwrap_or_default().as_secs() as usize
+                / time_total.as_secs() as usize
+                // add one to make sure the bar is never empty,
+                // and that it looks full at the end of songs
+                + 1
+                );
+
+            let progress_empty = progress_total - progress_full;
+
+            // careful logic for edge cases
+            // [===>   ]
+            let (open, full) = match progress_full {
+                0 => panic!("this shouldn't be possible"),
+                1 => ("", 0),
+                2 => ("[", 0),
+                _ => ("[", progress_full-2),
+            };
+            let (close, empty) = match progress_empty {
+                0 => ("", 0),
+                _ => ("]", progress_empty-1),
+            };
+
+            // assemble bar
+            let bar1 = "=".repeat(full);
+            let bar2 = " ".repeat(empty);
+
+            return format!(
+                "{col1}{open}{bar1}>{col_end}{col2}{bar2}{close}{col_end}"
+            )
+        }
+
+        // if we can't get the time, throw up a default
+        format!("{col2}[{}]{col_end}",
+            " ".repeat(width as usize - 2)
+        )
+    }
+
     fn print_header(&self) -> String {
         const COL_ARTIST : &str = "\x1b[1;36m";  // bold cyan
         const COL_TITLE  : &str = "\x1b[1;34m";  // bold blue
@@ -423,6 +478,8 @@ impl MusicData {
         const COL_RATING : &str = "\x1b[35;1m";  // bold magenta
         const COL_PLAY   : &str = "\x1b[32m";    // green
         const COL_PAUSE  : &str = "\x1b[31m";    // red
+        const COL_BAR_1  : &str = "\x1b[45m";    // magenta
+        const COL_BAR_2  : &str = "\x1b[46m";    // cyan
         const COL_END    : &str = "\x1b[0m";     // reset
 
         // start defining some variables
@@ -497,9 +554,12 @@ impl MusicData {
                 COL_PAUSE,
         };
 
+        // get visual progress bar
+        let progress = self.progress_bar(COL_BAR_1, COL_BAR_2, COL_END);
+
         // final format text
         format!(
-            "{COL_ARTIST}{artist}{COL_END} * {COL_TITLE}{title}{COL_END}\n({COL_TRACK}#{album_track}/{album_total}{COL_END}) {COL_ALBUM}{album}{COL_END} {COL_DATE}({date}){COL_END}\n{col_state}{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%{COL_END}  {COL_RATING}{rating}{COL_END}\n{col_state}{ersc_str}, {volume}%{crossfade}{COL_END}"
+            "{COL_ARTIST}{artist}{COL_END} * {COL_TITLE}{title}{COL_END}\n({COL_TRACK}#{album_track}/{album_total}{COL_END}) {COL_ALBUM}{album}{COL_END} {COL_DATE}({date}){COL_END}\n{col_state}{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%{COL_END}  {COL_RATING}{rating}{COL_END}\n{col_state}{ersc_str}, {volume}%{crossfade}{COL_END}\n{progress}"
         )
     }
 
