@@ -459,8 +459,8 @@ impl MusicData {
             let bar2 = " ".repeat(empty);
 
             return format!(
-                "{col1}{open}{bar1}>{col_end}{col2}{bar2}{close}{col_end}"
-            )
+                "{col1}{open}{bar1}>{col_end}{col2}{bar2}{close}{col_end}\n"
+                )
         }
 
         // if we can't get the time, throw up a default
