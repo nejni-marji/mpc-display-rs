@@ -560,12 +560,7 @@ impl MusicData {
         };
 
         // get visual progress bar
-        let progress = if self.options.progress {
-            self.progress_bar(format!("{ersc_str}, {volume}%{crossfade}").len()
-            )
-        } else {
-            String::new()
-        };
+        let progress = self.progress_bar(format!("{ersc_str}, {volume}%{crossfade}").len());
 
         // final format text
         format!(

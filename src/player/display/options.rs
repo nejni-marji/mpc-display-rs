@@ -1,9 +1,7 @@
 #[derive(Debug,Default,Clone)]
-#[allow(clippy::struct_excessive_bools)]
 pub struct MusicOpts {
     pub verbose: bool,
     pub ratings: bool,
-    pub progress: bool,
     pub easter: bool,
 }
 

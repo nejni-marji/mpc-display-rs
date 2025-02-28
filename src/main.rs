@@ -44,7 +44,6 @@ fn main() {
     let options = player::MusicOpts {
         verbose: args.verbose,
         ratings: !args.no_ratings,
-        progress: args.progress,
         easter: args.easter,
     };
 
@@ -79,10 +78,6 @@ struct Args {
     /// Hide ratings
     #[arg(short = 'R', long = "no-ratings")]
     no_ratings: bool,
-
-    /// Show visual progress bar
-    #[arg(long)]
-    progress: bool,
 
     /// Equivalent to '--format title'
     #[arg(short, long)]
