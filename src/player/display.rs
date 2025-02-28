@@ -416,7 +416,7 @@ impl MusicData {
     }
 
     #[allow(clippy::cast_possible_truncation)]
-    fn progress_bar(&self, col_bar: &str, col_end: &str) -> String {
+    fn progress_bar(&self) -> String {
         // get terminal width for progress bar
         let width = match terminal_size() {
             Some((w,_)) => u32::from(w.0),
@@ -458,14 +458,12 @@ impl MusicData {
             let bar2 = " ".repeat(empty);
 
             return format!(
-                "\n{col_bar}{open}{bar1}>{bar2}{close}{col_end}"
+                "{open}{bar1}>{bar2}{close}"
                 )
         }
 
         // if we can't get the time, throw up a default
-        format!("\n{col_bar}[{}]{col_end}",
-            " ".repeat(width as usize - 2)
-        )
+        format!("[{}]", " ".repeat(width as usize - 2))
     }
 
     fn print_header(&self) -> String {
@@ -554,14 +552,14 @@ impl MusicData {
 
         // get visual progress bar
         let progress = if self.options.progress {
-            self.progress_bar(COL_BAR, COL_END)
+            self.progress_bar()
         } else {
             String::new()
         };
 
         // final format text
         format!(
-            "{COL_ARTIST}{artist}{COL_END} * {COL_TITLE}{title}{COL_END}\n({COL_TRACK}#{album_track}/{album_total}{COL_END}) {COL_ALBUM}{album}{COL_END} {COL_DATE}({date}){COL_END}\n{col_state}{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%{COL_END}  {COL_RATING}{rating}{COL_END}\n{col_state}{ersc_str}, {volume}%{crossfade}{COL_END}{progress}"
+            "{COL_ARTIST}{artist}{COL_END} * {COL_TITLE}{title}{COL_END}\n({COL_TRACK}#{album_track}/{album_total}{COL_END}) {COL_ALBUM}{album}{COL_END} {COL_DATE}({date}){COL_END}\n{col_state}{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%{COL_END}  {COL_RATING}{rating}{COL_END}\n{col_state}{ersc_str}, {volume}%{crossfade}{COL_END}\n{COL_BAR}{progress}{COL_END}"
         )
     }
 
