@@ -416,7 +416,10 @@ impl MusicData {
     }
 
     #[allow(clippy::cast_possible_truncation)]
-    fn progress_bar(&self) -> String {
+    // TODO: rename neg_width
+    fn progress_bar(&self, neg_width: usize) -> String {
+        const PADDING: usize = 3;
+
         // get terminal width for progress bar
         let width = match terminal_size() {
             Some((w,_)) => u32::from(w.0),
@@ -424,10 +427,11 @@ impl MusicData {
         };
         dprintln!("[terminal: width {width}]");
 
+        let progress_total = width as usize - neg_width - PADDING;
+
         // time_total causes div by zero if unset
         if let Some(time_total) = self.time_total {
             // calculate size of bar
-            let progress_total = width as usize;
             let progress_full = min(
                 progress_total,
                 progress_total
@@ -454,16 +458,21 @@ impl MusicData {
             };
 
             // assemble bar
+            let padding = " ".repeat(PADDING);
             let bar1 = "=".repeat(full);
             let bar2 = " ".repeat(empty);
 
             return format!(
-                "{open}{bar1}>{bar2}{close}"
+                "{padding}{open}{bar1}>{bar2}{close}"
                 )
         }
 
         // if we can't get the time, throw up a default
-        format!("[{}]", " ".repeat(width as usize - 2))
+        format!("{}[{}]",
+            " ".repeat(PADDING),
+            // subtract 2 for the brackets
+            " ".repeat(progress_total as usize - 2),
+        )
     }
 
     fn print_header(&self) -> String {
@@ -552,14 +561,15 @@ impl MusicData {
 
         // get visual progress bar
         let progress = if self.options.progress {
-            self.progress_bar()
+            self.progress_bar(format!("{ersc_str}, {volume}%{crossfade}").len()
+            )
         } else {
             String::new()
         };
 
         // final format text
         format!(
-            "{COL_ARTIST}{artist}{COL_END} * {COL_TITLE}{title}{COL_END}\n({COL_TRACK}#{album_track}/{album_total}{COL_END}) {COL_ALBUM}{album}{COL_END} {COL_DATE}({date}){COL_END}\n{col_state}{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%{COL_END}  {COL_RATING}{rating}{COL_END}\n{col_state}{ersc_str}, {volume}%{crossfade}{COL_END}\n{COL_BAR}{progress}{COL_END}"
+            "{COL_ARTIST}{artist}{COL_END} * {COL_TITLE}{title}{COL_END}\n({COL_TRACK}#{album_track}/{album_total}{COL_END}) {COL_ALBUM}{album}{COL_END} {COL_DATE}({date}){COL_END}\n{col_state}{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%{COL_END}  {COL_RATING}{rating}{COL_END}\n{col_state}{ersc_str}, {volume}%{crossfade}{COL_END}{COL_BAR}{progress}{COL_END}"
         )
     }
 
