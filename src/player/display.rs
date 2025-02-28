@@ -426,7 +426,6 @@ impl MusicData {
 
         // time_total causes div by zero if unset
         if let Some(time_total) = self.time_total {
-
             // calculate size of bar
             let progress_total = width as usize;
             let progress_full = min(
