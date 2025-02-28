@@ -416,7 +416,7 @@ impl MusicData {
     }
 
     #[allow(clippy::cast_possible_truncation)]
-    fn progress_bar(&self, col1: &str, col2: &str, col_end: &str) -> String {
+    fn progress_bar(&self, col_bar: &str, col_end: &str) -> String {
         // get terminal width for progress bar
         let width = match terminal_size() {
             Some((w,_)) => u32::from(w.0),
@@ -458,12 +458,12 @@ impl MusicData {
             let bar2 = " ".repeat(empty);
 
             return format!(
-                "\n{col1}{open}{bar1}>{col_end}{col2}{bar2}{close}{col_end}\n"
+                "\n{col_bar}{open}{bar1}>{bar2}{close}{col_end}"
                 )
         }
 
         // if we can't get the time, throw up a default
-        format!("{col2}[{}]{col_end}",
+        format!("\n{col_bar}[{}]{col_end}",
             " ".repeat(width as usize - 2)
         )
     }
@@ -477,8 +477,7 @@ impl MusicData {
         const COL_RATING : &str = "\x1b[35;1m";  // bold magenta
         const COL_PLAY   : &str = "\x1b[32m";    // green
         const COL_PAUSE  : &str = "\x1b[31m";    // red
-        const COL_BAR_1  : &str = "\x1b[37;45m"; // magenta
-        const COL_BAR_2  : &str = "\x1b[37;46m"; // cyan
+        const COL_BAR    : &str = "\x1b[35m";    // magenta
         const COL_END    : &str = "\x1b[0m";     // reset
 
         // start defining some variables
@@ -555,7 +554,7 @@ impl MusicData {
 
         // get visual progress bar
         let progress = if self.options.progress {
-            self.progress_bar(COL_BAR_1, COL_BAR_2, COL_END)
+            self.progress_bar(COL_BAR, COL_END)
         } else {
             String::new()
         };
