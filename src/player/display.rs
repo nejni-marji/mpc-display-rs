@@ -92,14 +92,14 @@ impl Display {
         data.update_playlist(&self.client);
         data.update_sticker(&self.client);
 
-        // hide cursor for this program
-        print!("\x1b[?25l");
+        // hide cursor, enable alternate buffer
+        print!("\x1b[?25l\x1b[?1049h");
         io::stdout().flush().expect("can't flush buffer");
 
         self.display();
 
-        // reset terminal before exit
-        print!("\x1b[H\x1b[?25h\x1b[2J");
+        // unhide cursor, disable alternate buffer
+        print!("\x1b[?25h\x1b[?1049l");
         io::stdout().flush().expect("can't flush buffer");
 
         exit(match self.exit {
