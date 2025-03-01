@@ -47,7 +47,7 @@ fn main() {
         easter: args.easter,
     };
 
-    Player::init(address, format, options);
+    Player::init(&address, format, options);
 }
 
 /// Lightweight text-based MPD client
