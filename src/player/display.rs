@@ -416,8 +416,7 @@ impl MusicData {
     }
 
     #[allow(clippy::cast_possible_truncation)]
-    // TODO: rename neg_width
-    fn progress_bar(&self, neg_width: usize) -> String {
+    fn progress_bar(&self, options_width: usize) -> String {
         const PADDING: usize = 3;
 
         // get terminal width for progress bar
@@ -427,7 +426,7 @@ impl MusicData {
         };
         dprintln!("[terminal: width {width}]");
 
-        let progress_total = width as usize - neg_width - PADDING;
+        let progress_total = width as usize - options_width - PADDING;
 
         // time_total causes div by zero if unset
         if let Some(time_total) = self.time_total {
