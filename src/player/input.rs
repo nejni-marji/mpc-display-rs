@@ -54,6 +54,7 @@ impl KeyHandler {
     }
 
     // huge match statement to handle keyboard input. returns "quit" param.
+    // TODO: make this return an enum
     #[allow(clippy::too_many_lines)]
     fn handle_key(&self, ch: char, conn: &mut Client) -> bool {
         match ch {
