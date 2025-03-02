@@ -266,6 +266,7 @@ fn getch() -> Result<char, io::Error> {
 
     // reset the stdin to original termios data
     tcsetattr(stdin, TCSANOW, & backup_termios).expect("can't set terminal attributes");
+
     ch
 }
 
