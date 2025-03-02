@@ -17,17 +17,14 @@ fn main() {
 
     // get argument vars
     let host = args.host.map_or_else(
-        || env::var("MPD_HOST").unwrap_or_else(
-            |_| DEFAULT_HOST.to_string()
-        ),
+        || env::var("MPD_HOST").unwrap_or_else(|_| DEFAULT_HOST.to_string()),
         |h| h,
     );
     let port = args.port.map_or_else(
-        || env::var("MPD_PORT").map_or(
-            DEFAULT_PORT,
-            |p| p.parse()
-            .expect("invalid value for port"),
-        ),
+        || {
+            env::var("MPD_PORT")
+                .map_or(DEFAULT_PORT, |p| p.parse().expect("invalid value for port"))
+        },
         |p| p,
     );
     let address = format!("{host}:{port}");
@@ -36,9 +33,8 @@ fn main() {
     } else if args.reverse {
         vec!["artist".into(), "album".into(), "title".into()]
     } else {
-        args.format.unwrap_or_else(
-            || vec!["title".into(), "artist".into(), "album".into()]
-        )
+        args.format
+            .unwrap_or_else(|| vec!["title".into(), "artist".into(), "album".into()])
     };
 
     let options = player::MusicOpts {
@@ -58,7 +54,6 @@ fn main() {
 #[allow(clippy::doc_markdown)]
 // allow because this is not docs
 struct Args {
-
     /// Connect to server at address <HOST> (or $MPD_HOST)
     #[arg(short = 'H', long)]
     host: Option<String>,
