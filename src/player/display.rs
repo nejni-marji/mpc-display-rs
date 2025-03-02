@@ -20,10 +20,8 @@ use uuid::Uuid;
 
 #[allow(unused_imports)]
 use debug_print::{
-    debug_print as dprint,
-    debug_println as dprintln,
-    debug_eprint as deprint,
-    debug_eprintln as deprintln,
+    debug_eprint as deprint, debug_eprintln as deprintln,
+    debug_print as dprint, debug_println as dprintln,
 };
 
 const UNKNOWN: &str = "?";
@@ -715,8 +713,9 @@ impl MusicData {
         is_curr: bool,
     ) -> String {
         // get colors
-        const COL_CURR   : &str = "\x1b[7m";     // reverse
-        const COL_END    : &str = "\x1b[0m";     // reset
+        const COL_CURR: &str = "\x1b[7m"; // reverse
+        const COL_END: &str = "\x1b[0m"; // reset
+                                         //
         let (ansi1, ansi2, curr) = if is_curr {
             (COL_CURR, COL_END, '>')
         } else {

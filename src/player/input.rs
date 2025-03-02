@@ -10,10 +10,8 @@ use uuid::Uuid;
 
 #[allow(unused_imports)]
 use debug_print::{
-    debug_print as dprint,
-    debug_println as dprintln,
-    debug_eprint as deprint,
-    debug_eprintln as deprintln,
+    debug_eprint as deprint, debug_eprintln as deprintln,
+    debug_print as dprint, debug_println as dprintln,
 };
 
 pub struct KeyHandler {
