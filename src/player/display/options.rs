@@ -5,7 +5,7 @@ pub struct MusicOpts {
     pub easter: bool,
 }
 
-#[derive(Debug,Default,Clone)]
+#[derive(Debug,Default,Clone,Copy,PartialEq)]
 pub enum ExitCode {
     #[default]
     Unknown,

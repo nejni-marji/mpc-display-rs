@@ -30,7 +30,7 @@ enum Signal {
     #[default]
     Normal,
     Help,
-    Quit,
+    Quit(ExitCode),
 }
 
 #[derive(Debug,Default)]
@@ -38,7 +38,6 @@ pub struct Display {
     client: Mutex<Client>,
     data: MusicData,
     signal: Signal,
-    exit: ExitCode,
     uuid: Uuid,
 }
 
@@ -80,7 +79,6 @@ impl Display {
             client: Mutex::new(client),
             data: MusicData::new(format, options),
             signal: Signal::default(),
-            exit: ExitCode::Unknown,
             uuid,
         }
     }
@@ -102,14 +100,15 @@ impl Display {
         print!("\x1b[?25h\x1b[?1049l");
         io::stdout().flush().expect("can't flush buffer");
 
-        exit(match self.exit {
-            ExitCode::Unknown | ExitCode::Quit => {
+        exit(match self.signal {
+            Signal::Quit(ExitCode::Unknown | ExitCode::Quit) => {
                 0
             },
-            ExitCode::Error => {
+            Signal::Quit(ExitCode::Error) => {
                 println!("mpc-display-rs: disconnected from server.");
                 1
-            }
+            },
+            Signal::Normal | Signal::Help => panic!("this should not happen")
         });
     }
 
@@ -123,7 +122,7 @@ impl Display {
             // check signal status
             match self.signal {
                 Signal:: Normal => {},
-                Signal::Quit => {
+                Signal::Quit(_) => {
                     break
                 },
                 Signal::Help => {
@@ -201,8 +200,7 @@ impl Display {
         // if wait() returns Err, it's a sign we should quit. doing so will
         // return to the init() function, which will gracefully exit.
         let Ok(subsystems) = subsystems else {
-            self.signal = Signal::Quit;
-            self.exit = ExitCode::Error;
+            self.signal = Signal::Quit(ExitCode::Error);
             return
         };
 
@@ -247,8 +245,7 @@ impl Display {
                         format!("quit_{}", self.uuid.simple()).as_str()
                     ).expect("can't make quit channel")) {
 
-                        self.exit = ExitCode::Quit;
-                        Signal::Quit
+                        Signal::Quit(ExitCode::Quit)
 
                     } else {
                         self.signal
