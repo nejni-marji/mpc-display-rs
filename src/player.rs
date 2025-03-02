@@ -40,6 +40,6 @@ impl Player {
     }
 
     fn error(address: &str) {
-        println!("Cannot connect to server: {address}");
+        println!("mpc-display-rs: can't connect to server: {address}");
     }
 }
