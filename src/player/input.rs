@@ -4,12 +4,8 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-use termios::{Termios, TCSANOW, ECHO, ICANON, tcsetattr};
-use mpd::{
-    Client,
-    message::Channel,
-    State,
-};
+use mpd::{message::Channel, Client, State};
+use termios::{tcsetattr, Termios, ECHO, ICANON, TCSANOW};
 use uuid::Uuid;
 
 #[allow(unused_imports)]
@@ -26,7 +22,8 @@ pub struct KeyHandler {
 }
 
 impl KeyHandler {
-    #[must_use] pub fn new(client: Client, uuid: Uuid) -> Self {
+    #[must_use]
+    pub fn new(client: Client, uuid: Uuid) -> Self {
         Self {
             client: Arc::new(Mutex::new(client)),
             uuid,
@@ -36,15 +33,13 @@ impl KeyHandler {
     pub fn init(&self) {
         // create keepalive thread
         let client = Arc::clone(&self.client);
-        thread::spawn(move || {
-            loop {
-                thread::sleep(Duration::from_secs(60));
-                client
-                    .lock()
-                    .expect("can't get command connection")
-                    .status()
-                    .expect("failed keepalive!");
-                }
+        thread::spawn(move || loop {
+            thread::sleep(Duration::from_secs(60));
+            client
+                .lock()
+                .expect("can't get command connection")
+                .status()
+                .expect("failed keepalive!");
         });
 
         loop {
@@ -52,7 +47,7 @@ impl KeyHandler {
             // returns "quit"
             let mut conn = self.client.lock().expect("can't get command connection");
             if self.handle_key(ch, &mut conn) {
-                break
+                break;
             }
         }
     }
@@ -66,18 +61,15 @@ impl KeyHandler {
             }
             // quit
             'q' | 'Q' => {
-
                 let _ = conn.unsubscribe(
-                    Channel::new(format!("help_{}",
-                        self.uuid.simple()).as_str()
-                    ).expect("can't make help channel"));
-
+                    Channel::new(format!("help_{}", self.uuid.simple()).as_str())
+                        .expect("can't make help channel"),
+                );
 
                 dprintln!("input: quitting!");
                 let _ = conn.subscribe(
-                    Channel::new(format!("quit_{}",
-                        self.uuid.simple()).as_str()
-                    ).expect("can't make quit channel")
+                    Channel::new(format!("quit_{}", self.uuid.simple()).as_str())
+                        .expect("can't make quit channel"),
                 );
                 return true;
             }
@@ -96,27 +88,34 @@ impl KeyHandler {
             }
 
             // prev
-            'p' | 'k' => { let _ = conn.prev(); }
+            'p' | 'k' => {
+                let _ = conn.prev();
+            }
             // next
-            'n' | 'j' => { let _ = conn.next(); }
+            'n' | 'j' => {
+                let _ = conn.next();
+            }
             // volume up
             '=' | '+' | '0' | ')' => {
                 let vol = conn.status().unwrap_or_default().volume;
-                let vol = std::cmp::min(100, vol+5);
+                let vol = std::cmp::min(100, vol + 5);
                 let _ = conn.volume(vol);
             }
             // volume down
             '-' | '_' | '9' | '(' => {
                 let vol = conn.status().unwrap_or_default().volume;
                 // volume is i8, so you can do this
-                let vol = std::cmp::max(0, vol-5);
+                let vol = std::cmp::max(0, vol - 5);
                 let _ = conn.volume(vol);
             }
 
             // seek backwards
             'H' => {
-                let time = conn.status().unwrap_or_default()
-                    .elapsed.unwrap_or_default();
+                let time = conn
+                    .status()
+                    .unwrap_or_default()
+                    .elapsed
+                    .unwrap_or_default();
                 let time = if time.as_secs() <= 10 {
                     Duration::from_secs(0)
                 } else {
@@ -126,8 +125,11 @@ impl KeyHandler {
             }
             // seek forwards
             'L' => {
-                let time = conn.status().unwrap_or_default()
-                    .elapsed.unwrap_or_default();
+                let time = conn
+                    .status()
+                    .unwrap_or_default()
+                    .elapsed
+                    .unwrap_or_default();
                 let time = time + Duration::from_secs(10);
                 let _ = conn.rewind(time);
             }
@@ -135,7 +137,7 @@ impl KeyHandler {
             // ratings
             '{' => {
                 Self::inc_rating(-1, conn);
-                }
+            }
             '}' => {
                 Self::inc_rating(1, conn);
             }
@@ -162,20 +164,28 @@ impl KeyHandler {
             }
 
             // shuffle
-            'F' => { let _ = conn.shuffle(..); }
+            'F' => {
+                let _ = conn.shuffle(..);
+            }
 
             // crossfade up
             'x' => {
-                let crossfade = conn.status().unwrap_or_default()
-                    .crossfade.unwrap_or_default();
+                let crossfade = conn
+                    .status()
+                    .unwrap_or_default()
+                    .crossfade
+                    .unwrap_or_default();
                 let crossfade = crossfade + Duration::from_secs(1);
                 let _ = conn.crossfade(crossfade);
             }
 
             // crossfade down
             'X' => {
-                let crossfade = conn.status().unwrap_or_default()
-                    .crossfade.unwrap_or_default();
+                let crossfade = conn
+                    .status()
+                    .unwrap_or_default()
+                    .crossfade
+                    .unwrap_or_default();
                 if crossfade.as_secs() != 0 {
                     let crossfade = crossfade - Duration::from_secs(1);
                     let _ = conn.crossfade(crossfade);
@@ -183,7 +193,9 @@ impl KeyHandler {
             }
 
             // stop
-            'M' => { let _ = conn.stop(); }
+            'M' => {
+                let _ = conn.stop();
+            }
 
             // default
             _ => {
@@ -196,9 +208,8 @@ impl KeyHandler {
 
     fn handle_help(&self, conn: &mut Client) -> bool {
         // make help channel
-        let help_chan = Channel::new(format!("help_{}",
-            self.uuid.simple()).as_str()
-        ).expect("can't make help channel");
+        let help_chan = Channel::new(format!("help_{}", self.uuid.simple()).as_str())
+            .expect("can't make help channel");
 
         // if help is in channels, unsubscribe
         if conn.channels().unwrap_or_default().contains(&help_chan) {
@@ -227,7 +238,7 @@ impl KeyHandler {
                     // allowed inputs during helptext: esc, help, quit
                     'h' | '?' | '/' | 'q' | 'Q' => {
                         return self.handle_key(ch, conn);
-                    },
+                    }
                     _ => {}
                 }
             }
@@ -248,11 +259,9 @@ impl KeyHandler {
         let rating = (rating + inc).clamp(-1, 10);
 
         if rating == -1 {
-            let _ = conn.delete_sticker(
-                "song", &song.file, "rating");
+            let _ = conn.delete_sticker("song", &song.file, "rating");
         } else {
-            let _ = conn.set_sticker(
-                "song", &song.file, "rating", &rating.to_string());
+            let _ = conn.set_sticker("song", &song.file, "rating", &rating.to_string());
         }
     }
 }
@@ -265,7 +274,7 @@ fn getch() -> Result<char, io::Error> {
     let ch = getch_raw();
 
     // reset the stdin to original termios data
-    tcsetattr(stdin, TCSANOW, & backup_termios).expect("can't set terminal attributes");
+    tcsetattr(stdin, TCSANOW, &backup_termios).expect("can't set terminal attributes");
     ch
 }
 
@@ -280,7 +289,7 @@ fn getch_raw() -> Result<char, io::Error> {
     let mut reader = io::stdin();
 
     // read exactly one byte
-    let mut buffer = [0;1];
+    let mut buffer = [0; 1];
     stdout.lock().flush()?;
     reader.read_exact(&mut buffer)?;
 
