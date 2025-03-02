@@ -73,9 +73,7 @@ struct MusicData {
 
 impl Display {
     #[must_use]
-    pub fn new(client: Client, format: Vec<String>,
-        uuid: Uuid, options: MusicOpts) -> Self
-    {
+    pub fn new(client: Client, format: Vec<String>, uuid: Uuid, options: MusicOpts) -> Self {
         Self {
             client: Mutex::new(client),
             data: MusicData::new(format, options),

@@ -217,12 +217,8 @@ impl KeyHandler {
             let _ = conn.unsubscribe(help_chan);
 
             // toggle temp channel to force idle break
-            let _ = conn.subscribe(
-                Channel::new("tmp").expect("can't make temp channel")
-            );
-            let _ = conn.unsubscribe(
-                Channel::new("tmp").expect("can't make temp channel")
-            );
+            let _ = conn.subscribe(Channel::new("tmp").expect("can't make temp channel"));
+            let _ = conn.unsubscribe(Channel::new("tmp").expect("can't make temp channel"));
 
         // otherwise, subscribe to help channel and make a fake getch() loop
         } else {
@@ -248,13 +244,11 @@ impl KeyHandler {
     }
 
     fn inc_rating(inc: i8, conn: &mut Client) {
-        let song = conn.currentsong()
-            .unwrap_or_default().unwrap_or_default();
-        let rating: i8 = conn.sticker("song", &song.file, "rating")
-            .ok().map_or(
-                -1,
-                |r| r.parse().unwrap_or(-1)
-            );
+        let song = conn.currentsong().unwrap_or_default().unwrap_or_default();
+        let rating: i8 = conn
+            .sticker("song", &song.file, "rating")
+            .ok()
+            .map_or(-1, |r| r.parse().unwrap_or(-1));
 
         let rating = (rating + inc).clamp(-1, 10);
 

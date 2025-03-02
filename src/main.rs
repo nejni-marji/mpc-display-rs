@@ -34,9 +34,7 @@ fn main() {
         vec!["artist".into(), "album".into(), "title".into()]
     } else {
         args.format
-            .unwrap_or_else(
-                || vec!["title".into(), "artist".into(), "album".into()]
-            )
+            .unwrap_or_else(|| vec!["title".into(), "artist".into(), "album".into()])
     };
 
     let options = player::MusicOpts {
