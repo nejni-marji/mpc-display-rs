@@ -11,7 +11,10 @@ use std::sync::{mpsc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-use mpd::{Client, Idle, message::Channel, Query, search::Window, Song, song::QueuePlace, State, Subsystem, Term};
+use mpd::{
+    message::Channel, search::Window, song::QueuePlace, Client, Idle, Query,
+    Song, State, Subsystem, Term,
+};
 use terminal_size::terminal_size;
 use uuid::Uuid;
 
@@ -25,7 +28,7 @@ use debug_print::{
 
 const UNKNOWN: &str = "?";
 
-#[derive(Clone,Copy,Debug,Default,PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 enum Signal {
     #[default]
     Normal,
@@ -33,7 +36,7 @@ enum Signal {
     Quit,
 }
 
-#[derive(Debug,Default)]
+#[derive(Debug, Default)]
 pub struct Display {
     client: Mutex<Client>,
     data: MusicData,
@@ -42,7 +45,7 @@ pub struct Display {
     uuid: Uuid,
 }
 
-#[derive(Debug,Default,Clone)]
+#[derive(Debug, Default, Clone)]
 struct MusicData {
     // non-music data
     format: Vec<String>,
@@ -73,9 +76,12 @@ struct MusicData {
 
 impl Display {
     #[must_use]
-    pub fn new(client: Client, format: Vec<String>,
-        uuid: Uuid, options: MusicOpts) -> Self
-    {
+    pub fn new(
+        client: Client,
+        format: Vec<String>,
+        uuid: Uuid,
+        options: MusicOpts,
+    ) -> Self {
         Self {
             client: Mutex::new(client),
             data: MusicData::new(format, options),
@@ -103,9 +109,7 @@ impl Display {
         io::stdout().flush().expect("can't flush buffer");
 
         exit(match self.exit {
-            ExitCode::Unknown | ExitCode::Quit => {
-                0
-            },
+            ExitCode::Unknown | ExitCode::Quit => 0,
             ExitCode::Error => {
                 println!("mpc-display-rs: disconnected from server.");
                 1
@@ -122,13 +126,11 @@ impl Display {
         loop {
             // check signal status
             match self.signal {
-                Signal:: Normal => {},
-                Signal::Quit => {
-                    break
-                },
+                Signal::Normal => {}
+                Signal::Quit => break,
                 Signal::Help => {
                     Self::helptext();
-                },
+                }
             }
 
             // prepare channel
@@ -147,7 +149,8 @@ impl Display {
 
             // wait for idle, then print
             self.idle();
-            #[cfg(debug_assertions)] {
+            #[cfg(debug_assertions)]
+            {
                 counter_idle += 1;
             }
 
@@ -173,13 +176,14 @@ impl Display {
             // check quit signal, otherwise continue
             if signal {
                 dprintln!("[duration: break!]");
-                break
+                break;
             }
 
             // increment time only when we print,
             // otherwise it can break things.
             data.increment_time(DELAY);
-            #[cfg(debug_assertions)] {
+            #[cfg(debug_assertions)]
+            {
                 counter_delay += 1;
             }
             dprintln!("[duration: {counter_delay}]");
@@ -189,12 +193,14 @@ impl Display {
 
     fn idle(&mut self) {
         // use client to idle. no early drop
-        let mut conn = self.client.lock()
-            .expect("can't lock client");
+        let mut conn = self.client.lock().expect("can't lock client");
         let subsystems = conn.wait(&[
-            Subsystem::Player, Subsystem::Mixer,
-            Subsystem::Options, Subsystem::Queue,
-            Subsystem::Subscription, Subsystem::Sticker,
+            Subsystem::Player,
+            Subsystem::Mixer,
+            Subsystem::Options,
+            Subsystem::Queue,
+            Subsystem::Subscription,
+            Subsystem::Sticker,
         ]);
         drop(conn);
 
@@ -203,7 +209,7 @@ impl Display {
         let Ok(subsystems) = subsystems else {
             self.signal = Signal::Quit;
             self.exit = ExitCode::Error;
-            return
+            return;
         };
 
         dprintln!("[subsystems: {subsystems:?}]");
@@ -226,30 +232,30 @@ impl Display {
                 }
                 Subsystem::Subscription => {
                     // get channel list
-                    let mut conn = self.client.lock()
-                        .expect("can't lock client");
+                    let mut conn =
+                        self.client.lock().expect("can't lock client");
                     let channels = conn.channels().unwrap_or_default();
                     dprintln!("{channels:?}");
                     drop(conn);
 
                     // change signal based on channel/signal state
-                    self.signal = if channels.contains(&Channel::new(
-                        format!("help_{}", self.uuid.simple()).as_str()
-                    ).expect("can't make help channel")) {
-
+                    self.signal = if channels.contains(
+                        &Channel::new(
+                            format!("help_{}", self.uuid.simple()).as_str(),
+                        )
+                        .expect("can't make help channel"),
+                    ) {
                         Signal::Help
-
                     } else if self.signal == Signal::Help {
-
                         Signal::Normal
-
-                    } else if channels.contains(&Channel::new(
-                        format!("quit_{}", self.uuid.simple()).as_str()
-                    ).expect("can't make quit channel")) {
-
+                    } else if channels.contains(
+                        &Channel::new(
+                            format!("quit_{}", self.uuid.simple()).as_str(),
+                        )
+                        .expect("can't make quit channel"),
+                    ) {
                         self.exit = ExitCode::Quit;
                         Signal::Quit
-
                     } else {
                         self.signal
                     }
@@ -281,8 +287,7 @@ impl Display {
 
 impl MusicData {
     #[must_use]
-    pub fn new(format: Vec<String>, options: MusicOpts) -> Self
-    {
+    pub fn new(format: Vec<String>, options: MusicOpts) -> Self {
         Self {
             format,
             options,
@@ -297,10 +302,8 @@ impl MusicData {
 
     fn update_status(&mut self, client: &Mutex<Client>) {
         // use client to get some data
-        let mut conn = client.lock()
-            .expect("can't lock client");
-        let status = conn.status()
-            .unwrap_or_default();
+        let mut conn = client.lock().expect("can't lock client");
+        let status = conn.status().unwrap_or_default();
         drop(conn);
 
         // modify data
@@ -313,25 +316,21 @@ impl MusicData {
         self.time_total = status.duration;
         self.state = status.state;
         self.volume = status.volume;
-        self.ersc_opts = vec![
-            status.repeat, status.random,
-            status.single, status.consume];
+        self.ersc_opts =
+            vec![status.repeat, status.random, status.single, status.consume];
         self.crossfade = status.crossfade;
     }
 
     fn update_song(&mut self, client: &Mutex<Client>) {
         // use client to get some data
-        let mut conn = client.lock()
-            .expect("can't lock client");
-        let song = conn.currentsong()
-            .unwrap_or_default().unwrap_or_default();
+        let mut conn = client.lock().expect("can't lock client");
+        let song = conn.currentsong().unwrap_or_default().unwrap_or_default();
         drop(conn);
-
 
         // get easier stuff first
         let album = Self::get_metadata(&song, "album");
-        let album_track = Self::get_metadata(&song, "track")
-            .and_then(|t| t.parse().ok());
+        let album_track =
+            Self::get_metadata(&song, "track").and_then(|t| t.parse().ok());
 
         // get album total, optionally from cache
         let album_total = if album == self.prev_album {
@@ -358,10 +357,8 @@ impl MusicData {
 
     fn update_playlist(&mut self, client: &Mutex<Client>) {
         // use client to get some data
-        let mut conn = client.lock()
-            .expect("can't lock client");
-        let queue = conn.queue()
-            .unwrap_or_default();
+        let mut conn = client.lock().expect("can't lock client");
+        let queue = conn.queue().unwrap_or_default();
         drop(conn);
 
         // default case
@@ -393,22 +390,21 @@ impl MusicData {
                         break;
                     }
                 }
-                dprintln!("[update_playlist()]\n[is {tag} verbose? {is_verbose}]");
+                dprintln!(
+                    "[update_playlist()]\n[is {tag} verbose? {is_verbose}]"
+                );
                 verbose_tags.push(is_verbose);
             }
             self.verbose_tags = verbose_tags;
         }
         // always assign queue
         self.queue = queue;
-
     }
 
     fn update_sticker(&mut self, client: &Mutex<Client>) {
         // use client to get some data
-        let mut conn = client.lock()
-            .expect("can't lock client");
-        let rating = conn.sticker("song", &self.song.file, "rating")
-            .ok();
+        let mut conn = client.lock().expect("can't lock client");
+        let rating = conn.sticker("song", &self.song.file, "rating").ok();
         // dprintln!("[update_playlist()]\n[{queue:?}]");
         drop(conn);
 
@@ -421,7 +417,7 @@ impl MusicData {
 
         // get terminal width for progress bar
         let width = match terminal_size() {
-            Some((w,_)) => u32::from(w.0),
+            Some((w, _)) => u32::from(w.0),
             None => 24,
         };
         dprintln!("[terminal: width {width}]");
@@ -438,8 +434,8 @@ impl MusicData {
                 / time_total.as_secs() as usize
                 // add one to make sure the bar is never empty,
                 // and that it looks full at the end of songs
-                + 1
-                );
+                + 1,
+            );
 
             let progress_empty = progress_total - progress_full;
 
@@ -449,11 +445,11 @@ impl MusicData {
                 0 => panic!("this shouldn't be possible"),
                 1 => ("", 0),
                 2 => ("[", 0),
-                _ => ("[", progress_full-2),
+                _ => ("[", progress_full - 2),
             };
             let (close, empty) = match progress_empty {
                 0 => ("", 0),
-                _ => ("]", progress_empty-1),
+                _ => ("]", progress_empty - 1),
             };
 
             // assemble bar
@@ -461,13 +457,12 @@ impl MusicData {
             let bar1 = "=".repeat(full);
             let bar2 = " ".repeat(empty);
 
-            return format!(
-                "{padding}{open}{bar1}>{bar2}{close}"
-                )
+            return format!("{padding}{open}{bar1}>{bar2}{close}");
         }
 
         // if we can't get the time, throw up a default
-        format!("{}[{}]",
+        format!(
+            "{}[{}]",
             " ".repeat(PADDING),
             // subtract 2 for the brackets
             " ".repeat(progress_total as usize - 2),
@@ -487,33 +482,26 @@ impl MusicData {
         const COL_END    : &str = "\x1b[0m";     // reset
 
         // start defining some variables
-        let artist = self.artist
-            .clone().unwrap_or_else(|| UNKNOWN.into());
-        let title = self.title
-            .clone().unwrap_or_else(|| {
-                let file = self.song.file.clone();
-                if file.is_empty() {
-                    UNKNOWN.into()
-                } else {
-                file.split('/').last()
-                    .unwrap_or(UNKNOWN).into()
-                }
-            });
+        let artist = self.artist.clone().unwrap_or_else(|| UNKNOWN.into());
+        let title = self.title.clone().unwrap_or_else(|| {
+            let file = self.song.file.clone();
+            if file.is_empty() {
+                UNKNOWN.into()
+            } else {
+                file.split('/').last().unwrap_or(UNKNOWN).into()
+            }
+        });
 
-        let album_track = self.album_track.map_or_else(
-            || UNKNOWN.into(),
-            |s| s.to_string()
-        );
-        let album_total = self.album_total.map_or_else(
-            || UNKNOWN.into(),
-            |s| s.to_string()
-        );
+        let album_track = self
+            .album_track
+            .map_or_else(|| UNKNOWN.into(), |s| s.to_string());
+        let album_total = self
+            .album_total
+            .map_or_else(|| UNKNOWN.into(), |s| s.to_string());
 
-        let album = self.album
-            .clone().unwrap_or_else(|| UNKNOWN.into());
+        let album = self.album.clone().unwrap_or_else(|| UNKNOWN.into());
 
-        let date = self.date
-            .clone().unwrap_or_else(|| UNKNOWN.into());
+        let date = self.date.clone().unwrap_or_else(|| UNKNOWN.into());
 
         let state = match self.state {
             State::Play => "|>",
@@ -521,14 +509,12 @@ impl MusicData {
             State::Stop => "><",
         };
 
-        let queue_track = self.queue_track.map_or_else(
-            || UNKNOWN.into(),
-            |s| (s.pos+1).to_string(),
-        );
-        let queue_total = self.queue_total.map_or_else(
-            || UNKNOWN.into(),
-            |s| s.to_string(),
-        );
+        let queue_track = self
+            .queue_track
+            .map_or_else(|| UNKNOWN.into(), |s| (s.pos + 1).to_string());
+        let queue_total = self
+            .queue_total
+            .map_or_else(|| UNKNOWN.into(), |s| s.to_string());
 
         let elapsed_pretty = Self::get_pretty_time(self.time_curr)
             .unwrap_or_else(|| UNKNOWN.into());
@@ -537,29 +523,28 @@ impl MusicData {
 
         let percent = match (self.time_curr, self.time_total) {
             (Some(curr), Some(total)) => {
-                (100*curr.as_secs()/total.as_secs()).to_string()
-            },
-            _ =>UNKNOWN.into()
+                (100 * curr.as_secs() / total.as_secs()).to_string()
+            }
+            _ => UNKNOWN.into(),
         };
 
         let rating = self.get_rating();
 
         let ersc_str = self.get_ersc();
         let volume = self.volume;
-        let crossfade = self.crossfade.map_or_else(
-            String::new,
-            |t| format!(" (x: {})", t.as_secs()),
-        );
+        let crossfade = self
+            .crossfade
+            .map_or_else(String::new, |t| format!(" (x: {})", t.as_secs()));
 
         // apply coloring!!!
         let col_state = match self.state {
             State::Play => COL_PLAY,
-            State::Pause | State::Stop =>
-                COL_PAUSE,
+            State::Pause | State::Stop => COL_PAUSE,
         };
 
         // get visual progress bar
-        let progress = self.progress_bar(format!("{ersc_str}, {volume}%{crossfade}").len());
+        let progress = self
+            .progress_bar(format!("{ersc_str}, {volume}%{crossfade}").len());
 
         // final format text
         format!(
@@ -568,104 +553,124 @@ impl MusicData {
     }
 
     fn get_rating(&self) -> String {
-        fn fmt_r(r: &str) -> String { format!("rating: {r}") }
+        fn fmt_r(r: &str) -> String {
+            format!("rating: {r}")
+        }
 
         if self.options.ratings && !self.options.easter {
-            self.rating
-                .clone().map_or_else(
-                    || " ? ? ? ? ?".into(),
-                    |r| {
-                        const STARS: [&str; 3] = ["<3", "< ", " ."];
+            self.rating.clone().map_or_else(
+                || " ? ? ? ? ?".into(),
+                |r| {
+                    const STARS: [&str; 3] = ["<3", "< ", " ."];
 
-                        match r.parse::<usize>() {
-                            Err(_) => fmt_r(&r),
-                            Ok(n) => {
-                                if n > 10 {
-                                    return fmt_r(&r);
-                                }
-                                let (a, b) = (n/2, n%2);
-                                let c = std::cmp::max(0, 5-a-b);
-
-                                format!("{}{}{}",
-                                    STARS[0].repeat(a),
-                                    STARS[1].repeat(b),
-                                    STARS[2].repeat(c),
-                                )
+                    match r.parse::<usize>() {
+                        Err(_) => fmt_r(&r),
+                        Ok(n) => {
+                            if n > 10 {
+                                return fmt_r(&r);
                             }
+                            let (a, b) = (n / 2, n % 2);
+                            let c = std::cmp::max(0, 5 - a - b);
+
+                            format!(
+                                "{}{}{}",
+                                STARS[0].repeat(a),
+                                STARS[1].repeat(b),
+                                STARS[2].repeat(c),
+                            )
                         }
-                    })
+                    }
+                },
+            )
         } else if self.options.easter {
-            const CHRISTGAU: [&str; 11] = ["🦃", "💣" , " ✂️", "😐",
-            "⭐", "⭐ ⭐", "⭐ ⭐ ⭐", "B+", "A-", "A", "A+"];
-            format!("\x1b[40m {} \x1b[0m", CHRISTGAU[
-                self.rating
-                .clone()
-                .unwrap_or_default()
-                .parse::<usize>()
-                .unwrap_or_default()
-                .clamp(0, 11)
-            ])
+            const CHRISTGAU: [&str; 11] = [
+                "🦃",
+                "💣",
+                " ✂️",
+                "😐",
+                "⭐",
+                "⭐ ⭐",
+                "⭐ ⭐ ⭐",
+                "B+",
+                "A-",
+                "A",
+                "A+",
+            ];
+            format!(
+                "\x1b[40m {} \x1b[0m",
+                CHRISTGAU[self
+                    .rating
+                    .clone()
+                    .unwrap_or_default()
+                    .parse::<usize>()
+                    .unwrap_or_default()
+                    .clamp(0, 11)]
+            )
         } else {
             String::new()
         }
     }
 
     #[allow(clippy::let_and_return)]
-    fn print_queue(&self, height: u32, width: u32, header_height: u32) -> String {
+    fn print_queue(
+        &self,
+        height: u32,
+        width: u32,
+        header_height: u32,
+    ) -> String {
         // get height of queue
-        let queue_height = height-header_height;
+        let queue_height = height - header_height;
 
         // get size of queue and current song index
         let queue_size: u32 = self.queue.len().try_into().unwrap_or(0);
-        let song_pos = self.song.place.map_or_else(
-            || 0,
-            |p| p.pos,
-        );
+        let song_pos = self.song.place.map_or_else(|| 0, |p| p.pos);
 
         // determine padding for format_song()
-        let padding = 1 + queue_size
-            .checked_ilog10()
-            .unwrap_or_default();
+        let padding = 1 + queue_size.checked_ilog10().unwrap_or_default();
 
         // queue to vec of song-strings
         let mut counter = 0;
-        let queue = self.queue
-            .clone().iter().map(|i| {
+        let queue = self
+            .queue
+            .clone()
+            .iter()
+            .map(|i| {
                 counter += 1;
-                let is_curr = counter == song_pos+1;
+                let is_curr = counter == song_pos + 1;
                 self.format_song(i, counter, padding, is_curr)
             })
-        .collect::<Vec<_>>();
+            .collect::<Vec<_>>();
 
         // filter and string-ify the queue
-        let queue = Self::filter_queue(&queue,
-            queue_height, queue_size, song_pos)
-            .join("\n");
+        let queue =
+            Self::filter_queue(&queue, queue_height, queue_size, song_pos)
+                .join("\n");
 
         // wrap the queue
         let opt = textwrap::Options::new(
-            width.try_into().expect("nothing should be that big")
+            width.try_into().expect("nothing should be that big"),
         );
         let queue = textwrap::wrap(&queue, opt);
 
         // (again) get size of queue and current song index
-        let queue_size: u32 = queue.len().try_into().expect("nothing should be that big");
+        let queue_size: u32 =
+            queue.len().try_into().expect("nothing should be that big");
         let mut song_pos: Option<u32> = None;
         for (i, v) in queue.iter().enumerate() {
             if v.starts_with('>') || v.starts_with('\x1b') {
-                song_pos = Some(i.try_into().expect("nothing should be that big"));
+                song_pos =
+                    Some(i.try_into().expect("nothing should be that big"));
             }
         }
         let song_pos = song_pos.unwrap_or(0);
 
         // filter the queue
-        let queue = Self::filter_queue(&queue,
-            queue_height, queue_size, song_pos);
+        let queue =
+            Self::filter_queue(&queue, queue_height, queue_size, song_pos);
 
         // create padding to add later
         let len = queue.len().try_into().unwrap_or(0);
-        let mut diff: i32 = ((queue_height) - len).
-            try_into().unwrap_or(0);
+        let mut diff: i32 = ((queue_height) - len).try_into().unwrap_or(0);
         if diff < 0 {
             diff = 0;
         }
@@ -681,35 +686,34 @@ impl MusicData {
     }
 
     #[allow(clippy::let_and_return)]
-    fn filter_queue<T>(queue: &[T],
-        queue_height: u32, queue_size: u32, song_pos: u32) -> &[T]
-    {
+    fn filter_queue<T>(
+        queue: &[T],
+        queue_height: u32,
+        queue_size: u32,
+        song_pos: u32,
+    ) -> &[T] {
         // get variables to filter the queue
-        let head = Self::get_centered_index(
-            queue_height,
-            queue_size,
-            song_pos,
-        );
-        let tail = std::cmp::min(
-            queue_size,
-            head + queue_height,
-        );
-        let tail = std::cmp::min(
-            tail, queue.len().try_into().unwrap_or(0)
-        );
+        let head = Self::get_centered_index(queue_height, queue_size, song_pos);
+        let tail = std::cmp::min(queue_size, head + queue_height);
+        let tail = std::cmp::min(tail, queue.len().try_into().unwrap_or(0));
 
         dprintln!("head: {head}");
         dprintln!("tail: {tail}");
         dprintln!("len: {}", queue.len());
 
         // actually filter the queue
-        let queue = queue.get(head as usize..tail as usize)
-            .unwrap_or_default();
+        let queue = queue.get(head as usize..tail as usize).unwrap_or_default();
 
         queue
     }
 
-    fn format_song(&self, song: &Song, index: u32, padding: u32, is_curr: bool) -> String {
+    fn format_song(
+        &self,
+        song: &Song,
+        index: u32,
+        padding: u32,
+        is_curr: bool,
+    ) -> String {
         // get colors
         const COL_CURR   : &str = "\x1b[7m";     // reverse
         const COL_END    : &str = "\x1b[0m";     // reset
@@ -725,10 +729,14 @@ impl MusicData {
         // get song text
         let mut tags = Vec::new();
         for (i, v) in self.format.clone().into_iter().enumerate() {
-            if !self.options.verbose && *self.verbose_tags.get(i).unwrap_or(&false) {
+            if !self.options.verbose
+                && *self.verbose_tags.get(i).unwrap_or(&false)
+            {
                 continue;
             }
-            tags.push(Self::get_metadata(song, &v).unwrap_or_else(|| UNKNOWN.into()));
+            tags.push(
+                Self::get_metadata(song, &v).unwrap_or_else(|| UNKNOWN.into()),
+            );
         }
 
         let songtext = tags.join("  *  ");
@@ -741,25 +749,27 @@ impl MusicData {
     fn get_centered_index(display: u32, total: u32, curr: u32) -> u32 {
         dprintln!("[get_centered_index()]\n[display: {display}, total: {total}, curr: {curr}]");
         if total <= display {
-            return 0
+            return 0;
         }
 
-        let half = (display-1)/2;
+        let half = (display - 1) / 2;
         #[allow(clippy::cast_possible_wrap)]
         let head = curr as i32 - half as i32;
-        let tail = if display%2 == 0 {
-            curr+half+1
+        let tail = if display % 2 == 0 {
+            curr + half + 1
         } else {
-            curr+half
+            curr + half
         };
 
         // values are invalid if the start of the list is before 0, or if the end of the list is after the end of the list
         let head_err = head < 0;
         let tail_err = tail >= total;
         match (head_err, tail_err) {
-            (true, _) => { 0 }
-            (false, true) => { total - display }
-            (false, false) => { head.try_into().expect("this should be impossible. i think?") }
+            (true, _) => 0,
+            (false, true) => total - display,
+            (false, false) => head
+                .try_into()
+                .expect("this should be impossible. i think?"),
         }
     }
 
@@ -768,22 +778,24 @@ impl MusicData {
     }
 
     #[allow(clippy::needless_pass_by_value)]
-    fn get_album_size(client: &Mutex<Client>, album: Option<String>) -> Option<u32> {
+    fn get_album_size(
+        client: &Mutex<Client>,
+        album: Option<String>,
+    ) -> Option<u32> {
         // build query
         let mut query = Query::new();
         query.and(Term::Tag(Borrowed("Album")), album.clone()?);
-        let window = Window::from((0,u32::from(u16::MAX)));
+        let window = Window::from((0, u32::from(u16::MAX)));
         // lock client and search
-        let mut conn = client.lock()
-            .expect("can't lock client");
+        let mut conn = client.lock().expect("can't lock client");
         let search = conn.search(&query, window).ok();
         drop(conn);
         // parse search
         search.map(|s| {
-            let s = s.into_iter()
+            let s = s
+                .into_iter()
                 .filter(|i| Self::get_metadata(i, "album") == album);
-            u32::try_from(s.count())
-                .expect("can't cast search length")
+            u32::try_from(s.count()).expect("can't cast search length")
         })
     }
 
@@ -804,7 +816,7 @@ impl MusicData {
                     v.to_ascii_uppercase()
                 } else {
                     *v
-                }
+                },
             );
         }
         ersc
@@ -825,14 +837,13 @@ impl MusicData {
             }
         }
     }
-
 }
 
 impl fmt::Display for MusicData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // get terminal height
         let (height, width) = match terminal_size() {
-            Some((w,h)) => (u32::from(h.0), u32::from(w.0)),
+            Some((w, h)) => (u32::from(h.0), u32::from(w.0)),
             None => (24, 80),
         };
         dprintln!("[terminal: height {height}, width {width}]");
@@ -840,16 +851,17 @@ impl fmt::Display for MusicData {
         // get header size
         let header = self.print_header();
         let opt = textwrap::Options::new(
-            width.try_into().expect("nothing should be that big")
+            width.try_into().expect("nothing should be that big"),
         );
-        let header = textwrap::fill(
-            header.as_str(), opt
-        );
+        let header = textwrap::fill(header.as_str(), opt);
         let header_height = (1 + header.matches('\n').count())
-            .try_into().expect("can't cast header size");
+            .try_into()
+            .expect("can't cast header size");
         dprintln!("[header_height: {header_height}]");
 
-        write!(f, "{}\n{}",
+        write!(
+            f,
+            "{}\n{}",
             header,
             self.print_queue(height, width, header_height),
         )
