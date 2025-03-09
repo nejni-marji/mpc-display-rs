@@ -382,8 +382,8 @@ impl MusicData {
                 for song in &queue {
                     // temp value for other songs
                     let temp2 = Self::get_metadata(song, tag);
-                    // if different, break from song loop
-                    if temp1 != temp2 {
+                    // if value is different or none, break from song loop
+                    if temp1 != temp2 || temp2.is_none() {
                         is_verbose = false;
                         break;
                     }
@@ -828,7 +828,7 @@ impl MusicData {
             _ => {
                 let mut value = None;
                 for (k, v) in &song.tags {
-                    if k.eq_ignore_ascii_case(tag) {
+                    if k.eq_ignore_ascii_case(tag) && !v.is_empty() {
                         value = Some(v);
                     }
                 }
