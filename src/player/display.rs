@@ -481,14 +481,7 @@ impl MusicData {
 
         // start defining some variables
         let artist = self.artist.clone().unwrap_or_else(|| UNKNOWN.into());
-        let title = self.title.clone().unwrap_or_else(|| {
-            let file = self.song.file.clone();
-            if file.is_empty() {
-                UNKNOWN.into()
-            } else {
-                file.split('/').last().unwrap_or(UNKNOWN).into()
-            }
-        });
+        let title = Self::read_title(&self.song);
 
         let album_track = self
             .album_track
@@ -823,7 +816,7 @@ impl MusicData {
 
     fn get_metadata(song: &Song, tag: &str) -> Option<String> {
         match tag {
-            "title" => song.title.clone(),
+            "title" => Some(Self::read_title(song)),
             "artist" => song.artist.clone(),
             _ => {
                 let mut value = None;
@@ -835,6 +828,17 @@ impl MusicData {
                 value.cloned()
             }
         }
+    }
+
+    fn read_title(song: &Song) -> String {
+        song.title.clone().unwrap_or_else(|| {
+            let file = song.file.clone();
+            if file.is_empty() {
+                UNKNOWN.into()
+            } else {
+                file.split('/').last().unwrap_or(UNKNOWN).into()
+            }
+        })
     }
 }
 
