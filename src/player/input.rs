@@ -1,4 +1,5 @@
-use crate::common::{clean_exit, ExitCode};
+use crate::common;
+use crate::common::ExitCode;
 
 use std::io;
 use std::io::{Read, Write};
@@ -41,7 +42,8 @@ impl KeyHandler {
                 .status()
                 .is_err()
             {
-                clean_exit(ExitCode::Error);
+                common::stop_ansi();
+                common::clean_exit(ExitCode::Error);
             }
         });
 

@@ -1,4 +1,5 @@
-use crate::common::{clean_exit, ExitCode, MusicOpts};
+use crate::common;
+use crate::common::{ExitCode, MusicOpts};
 
 use std::borrow::Cow::Borrowed;
 use std::cmp::min;
@@ -94,13 +95,11 @@ impl Display {
         data.update_playlist(&self.client);
         data.update_sticker(&self.client);
 
-        // hide cursor, enable alternate buffer
-        print!("\x1b[?25l\x1b[?1049h");
-        io::stdout().flush().expect("can't flush buffer");
-
+        // these functions set up ansi codes and gracefully exit
+        common::start_ansi();
         self.display();
-
-        clean_exit(self.exit);
+        common::stop_ansi();
+        common::clean_exit(self.exit);
     }
 
     pub fn display(&mut self) {
