@@ -1,5 +1,7 @@
+pub mod common;
 mod player;
 
+use common::MusicOpts;
 use player::Player;
 
 use std::env;
@@ -39,7 +41,7 @@ fn main() {
         })
     };
 
-    let options = player::MusicOpts {
+    let options = MusicOpts {
         verbose: args.verbose,
         ratings: !args.no_ratings,
         easter: args.easter,

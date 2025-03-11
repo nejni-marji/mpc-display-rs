@@ -1,5 +1,4 @@
-pub mod options;
-use options::{ExitCode, MusicOpts};
+use crate::common::{ExitCode, MusicOpts};
 
 use std::borrow::Cow::Borrowed;
 use std::cmp::min;

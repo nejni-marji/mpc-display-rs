@@ -1,7 +1,7 @@
 mod display;
 mod input;
 
-pub use display::options::MusicOpts;
+use crate::common::MusicOpts;
 
 use display::Display;
 use input::KeyHandler;
