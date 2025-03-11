@@ -468,16 +468,16 @@ impl MusicData {
     }
 
     fn print_header(&self) -> String {
-        const COL_ARTIST : &str = "\x1b[1;36m";  // bold cyan
-        const COL_TITLE  : &str = "\x1b[1;34m";  // bold blue
-        const COL_TRACK  : &str = "\x1b[32m";    // green
-        const COL_ALBUM  : &str = "\x1b[36m";    // cyan
-        const COL_DATE   : &str = "\x1b[33m";    // bold yellow
-        const COL_RATING : &str = "\x1b[35;1m";  // bold magenta
-        const COL_PLAY   : &str = "\x1b[32m";    // green
-        const COL_PAUSE  : &str = "\x1b[31m";    // red
-        const COL_BAR    : &str = "\x1b[35m";    // magenta
-        const COL_END    : &str = "\x1b[0m";     // reset
+        const COL_ARTIST: &str = "\x1b[1;36m"; // bold cyan
+        const COL_TITLE: &str = "\x1b[1;34m"; // bold blue
+        const COL_TRACK: &str = "\x1b[32m"; // green
+        const COL_ALBUM: &str = "\x1b[36m"; // cyan
+        const COL_DATE: &str = "\x1b[33m"; // bold yellow
+        const COL_RATING: &str = "\x1b[35;1m"; // bold magenta
+        const COL_PLAY: &str = "\x1b[32m"; // green
+        const COL_PAUSE: &str = "\x1b[31m"; // red
+        const COL_BAR: &str = "\x1b[35m"; // magenta
+        const COL_END: &str = "\x1b[0m"; // reset
 
         // start defining some variables
         let artist = self.artist.clone().unwrap_or_else(|| UNKNOWN.into());
@@ -534,8 +534,9 @@ impl MusicData {
         };
 
         // get visual progress bar
-        let progress = self
-            .progress_bar(format!("{ersc_str}, {volume: >3}%{crossfade}").len());
+        let progress = self.progress_bar(
+            format!("{ersc_str}, {volume: >3}%{crossfade}").len(),
+        );
 
         // final format text
         format!(
