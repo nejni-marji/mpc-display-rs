@@ -31,7 +31,7 @@ pub fn stop_ansi() {
     io::stdout().flush().expect("can't flush buffer");
 }
 
-pub fn clean_exit(exitcode: ExitCode) {
+pub fn clean_exit(exitcode: ExitCode) -> ! {
     exit(match exitcode {
         ExitCode::Unknown | ExitCode::Quit => 0,
         ExitCode::Error => {

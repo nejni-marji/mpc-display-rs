@@ -36,22 +36,23 @@ impl KeyHandler {
         let client = Arc::clone(&self.client);
         thread::spawn(move || loop {
             thread::sleep(Duration::from_secs(60));
-            if client
+            client
                 .lock()
                 .expect("can't get command connection")
                 .status()
-                .is_err()
-            {
-                common::stop_ansi();
-                common::clean_exit(ExitCode::Error);
-            }
+                .unwrap_or_else(|_| {
+                    common::stop_ansi();
+                    common::clean_exit(ExitCode::Error);
+                });
         });
 
         loop {
             let ch = getch().unwrap_or_default();
             // returns "quit"
-            let mut conn =
-                self.client.lock().expect("can't get command connection");
+            let mut conn = self.client.lock().unwrap_or_else(|_| {
+                common::stop_ansi();
+                common::clean_exit(ExitCode::Error);
+            });
             if self.handle_key(ch, &mut conn) {
                 break;
             }
