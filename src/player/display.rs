@@ -525,7 +525,7 @@ impl MusicData {
         let volume = self.volume;
         let crossfade = self
             .crossfade
-            .map_or_else(String::new, |t| format!(" (x: {})", t.as_secs()));
+            .map_or_else(String::new, |t| format!(" ({})", t.as_secs()));
 
         // apply coloring!!!
         let col_state = match self.state {
@@ -535,11 +535,11 @@ impl MusicData {
 
         // get visual progress bar
         let progress = self
-            .progress_bar(format!("{ersc_str}, {volume}%{crossfade}").len());
+            .progress_bar(format!("{ersc_str}, {volume: >3}%{crossfade}").len());
 
         // final format text
         format!(
-            "{COL_TITLE}{title}{COL_END} * {COL_ARTIST}{artist}{COL_END}\n({COL_TRACK}#{album_track}/{album_total}{COL_END}) {COL_ALBUM}{album}{COL_END} {COL_DATE}({date}){COL_END}\n{col_state}{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%{COL_END}  {COL_RATING}{rating}{COL_END}\n{col_state}{ersc_str}, {volume}%{crossfade}{COL_END}{COL_BAR}{progress}{COL_END}"
+            "{COL_TITLE}{title}{COL_END} * {COL_ARTIST}{artist}{COL_END}\n({COL_TRACK}#{album_track}/{album_total}{COL_END}) {COL_ALBUM}{album}{COL_END} {COL_DATE}({date}){COL_END}\n{col_state}{state} {queue_track}/{queue_total}: {elapsed_pretty}/{duration_pretty}, {percent}%{COL_END}  {COL_RATING}{rating}{COL_END}\n{col_state}{ersc_str}, {volume: >3}%{crossfade}{COL_END}{COL_BAR}{progress}{COL_END}"
         )
     }
 
