@@ -1,3 +1,5 @@
+use crate::common::{clean_exit, ExitCode};
+
 use std::io;
 use std::io::{Read, Write};
 use std::sync::{Arc, Mutex};
@@ -33,11 +35,14 @@ impl KeyHandler {
         let client = Arc::clone(&self.client);
         thread::spawn(move || loop {
             thread::sleep(Duration::from_secs(60));
-            client
+            if client
                 .lock()
                 .expect("can't get command connection")
                 .status()
-                .expect("failed keepalive!");
+                .is_err()
+            {
+                clean_exit(ExitCode::Error);
+            }
         });
 
         loop {

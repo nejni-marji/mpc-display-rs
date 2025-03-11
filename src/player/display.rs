@@ -1,11 +1,10 @@
-use crate::common::{ExitCode, MusicOpts};
+use crate::common::{clean_exit, ExitCode, MusicOpts};
 
 use std::borrow::Cow::Borrowed;
 use std::cmp::min;
 use std::fmt;
 use std::io;
 use std::io::Write;
-use std::process::exit;
 use std::sync::{mpsc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -101,17 +100,7 @@ impl Display {
 
         self.display();
 
-        // unhide cursor, disable alternate buffer
-        print!("\x1b[?25h\x1b[?1049l");
-        io::stdout().flush().expect("can't flush buffer");
-
-        exit(match self.exit {
-            ExitCode::Unknown | ExitCode::Quit => 0,
-            ExitCode::Error => {
-                println!("mpc-display-rs: disconnected from server.");
-                1
-            }
-        });
+        clean_exit(self.exit);
     }
 
     pub fn display(&mut self) {
