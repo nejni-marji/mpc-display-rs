@@ -749,7 +749,7 @@ impl MusicData {
             (false, true) => total - display,
             (false, false) => head
                 .try_into()
-                .expect("this should be impossible. i think?"),
+                .expect("nothing should be this big"),
         }
     }
 
