@@ -747,9 +747,9 @@ impl MusicData {
         match (head_err, tail_err) {
             (true, _) => 0,
             (false, true) => total - display,
-            (false, false) => head
-                .try_into()
-                .expect("nothing should be this big"),
+            (false, false) => {
+                head.try_into().expect("nothing should be this big")
+            }
         }
     }
 
