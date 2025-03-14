@@ -762,7 +762,7 @@ impl MusicData {
         // build query
         let mut query = Query::new();
         query.and(Term::Tag(Borrowed("Album")), album.clone()?);
-        let window = Window::from((0, u32::from(u16::MAX)));
+        let window = Window::from((0, u16::MAX as u32));
         // lock client and search
         let mut conn = client.lock().expect("can't lock client");
         let search = conn.search(&query, window).ok();
@@ -772,7 +772,7 @@ impl MusicData {
             let s = s
                 .into_iter()
                 .filter(|i| Self::get_metadata(i, "album") == album);
-            u32::try_from(s.count()).expect("can't cast search length")
+            s.count() as u32
         })
     }
 
@@ -840,9 +840,7 @@ impl fmt::Display for MusicData {
         let header = self.print_header();
         let opt = textwrap::Options::new(width as usize);
         let header = textwrap::fill(header.as_str(), opt);
-        let header_height = (1 + header.matches('\n').count())
-            .try_into()
-            .expect("can't cast header size");
+        let header_height = (1 + header.matches('\n').count()) as u32;
         dprintln!("[header_height: {header_height}]");
 
         write!(
