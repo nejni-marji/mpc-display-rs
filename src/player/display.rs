@@ -1,3 +1,5 @@
+#![allow(clippy::cast_possible_truncation)]
+
 use crate::common;
 use crate::common::{ExitCode, MusicOpts};
 
@@ -626,19 +628,15 @@ impl MusicData {
                 .join("\n");
 
         // wrap the queue
-        let opt = textwrap::Options::new(
-            width.try_into().expect("nothing should be that big"),
-        );
+        let opt = textwrap::Options::new(width as usize);
         let queue = textwrap::wrap(&queue, opt);
 
         // (again) get size of queue and current song index
-        let queue_size: u32 =
-            queue.len().try_into().expect("nothing should be that big");
+        let queue_size = queue.len() as u32;
         let mut song_pos: Option<u32> = None;
         for (i, v) in queue.iter().enumerate() {
             if v.starts_with('>') || v.starts_with('\x1b') {
-                song_pos =
-                    Some(i.try_into().expect("nothing should be that big"));
+                song_pos = Some(i as u32);
             }
         }
         let song_pos = song_pos.unwrap_or(0);
@@ -704,7 +702,7 @@ impl MusicData {
         };
 
         // get padding
-        let padding = padding.try_into().expect("nothing should be that big");
+        let padding = padding as usize;
 
         // get song text
         let mut tags = Vec::new();
@@ -747,9 +745,8 @@ impl MusicData {
         match (head_err, tail_err) {
             (true, _) => 0,
             (false, true) => total - display,
-            (false, false) => {
-                head.try_into().expect("nothing should be this big")
-            }
+            #[allow(clippy::cast_sign_loss)]
+            (false, false) => head as u32,
         }
     }
 
@@ -841,9 +838,7 @@ impl fmt::Display for MusicData {
 
         // get header size
         let header = self.print_header();
-        let opt = textwrap::Options::new(
-            width.try_into().expect("nothing should be that big"),
-        );
+        let opt = textwrap::Options::new(width as usize);
         let header = textwrap::fill(header.as_str(), opt);
         let header_height = (1 + header.matches('\n').count())
             .try_into()
