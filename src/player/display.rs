@@ -389,7 +389,7 @@ impl MusicData {
     fn update_sticker(&mut self, client: &Mutex<Client>) {
         // use client to get some data
         let mut conn = client.lock().expect("can't lock client");
-        let rating = conn.sticker("song", &self.song.file, "rating").ok();
+        let rating = None; //conn.sticker("song", &self.song.file, "rating").ok();
         // dprintln!("[update_playlist()]\n[{queue:?}]");
         drop(conn);
 
